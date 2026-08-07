@@ -1,16 +1,25 @@
+import sys
+import os
 import json
 import sys
 from pathlib import Path
 
 import streamlit as st
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-AGENTS_DIR = PROJECT_ROOT / "agents"
-for candidate in [str(PROJECT_ROOT), str(AGENTS_DIR)]:
-    if candidate not in sys.path:
-        sys.path.insert(0, candidate)
+# 1. Get the absolute path of the root directory (where streamlit_app.py lives)
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
+# 2. Point to the folder where soc_agent_orchestrator.py is located
+# (Change 'src' to '.' if it is NOT in a folder and is sitting right next to streamlit_app.py)
+backend_dir = os.path.join(current_dir, 'src') 
+
+# 3. Force Python to look in that directory
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+# 4. Now the import will work
 from soc_agent_orchestrator import SOCAgentOrchestrator
+
 
 
 st.set_page_config(page_title="SOC Agent Orchestrator", page_icon="🛡️", layout="wide")
