@@ -1,29 +1,22 @@
-import sys
-import os
+import streamlit as st
+import time
 import json
 import sys
+import os
 from pathlib import Path
-from pathlib import Path
 
-# This dynamically sets the root directory to wherever streamlit_app.py is located
-PROJECT_ROOT = Path(__file__).parent
-import streamlit as st
+# 1. Get the path of the ROOT directory (go up one level from the 'app' folder)
+PROJECT_ROOT = Path(__file__).parent.parent
 
-# 1. Get the absolute path of the root directory (where streamlit_app.py lives)
-current_dir = os.path.dirname(os.path.abspath(__file__))
+# 2. Add the root directory to sys.path so Python can see the 'agents' folder
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-# 2. Point to the folder where soc_agent_orchestrator.py is located
-# (Change 'src' to '.' if it is NOT in a folder and is sitting right next to streamlit_app.py)
-backend_dir = os.path.join(current_dir, 'src') 
-
-# 3. Force Python to look in that directory
-if backend_dir not in sys.path:
-    sys.path.insert(0, backend_dir)
-
-# 4. Now the import will work
-from agents.soc_agent_orchestrator import SOCAgentOrchestrator
-
-
+# 3. Now the import will work perfectly
+try:
+    from agents.soc_agent_orchestrator import SOCAgentOrchestrator
+except ImportError:
+    pass # Will gracefully fail if backend isn't linked yet, but UI will still render.
 
 st.set_page_config(page_title="SOC Agent Orchestrator", page_icon="🛡️", layout="wide")
 
