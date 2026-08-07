@@ -4,7 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 AGENTS_DIR = PROJECT_ROOT / "agents"
 for candidate in [str(PROJECT_ROOT), str(AGENTS_DIR)]:
     if candidate not in sys.path:
