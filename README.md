@@ -1,7 +1,57 @@
-<<<<<<< HEAD
 # 🛡️ FORTIS — Autonomous Multi-Agent SOC Intelligence Platform
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io/)
+[![Run on Replit](https://replit.com/badge/github/THEPUCHU/s-o-c)](https://replit.com/github/THEPUCHU/s-o-c)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FTHEPUCHU%2Fs-o-c)
+
 > **FORTIS** is an enterprise-grade, real-time autonomous Multi-Agent Security Operations Center (SOC) platform designed to ingest high-severity alert telemetry, decompose complex cyber incidents, execute automated SOAR containment playbooks, and generate executive breach reports with explicit Threat Neutralization Verdicts.
+
+---
+
+## ⚡ Instant Cloud Deployment Options
+
+### 1. 🎈 Streamlit Community Cloud (Recommended for Streamlit Users)
+1. Go to [share.streamlit.io](https://share.streamlit.io/).
+2. Click **"New app"**.
+3. Select Repository: `THEPUCHU/s-o-c` | Branch: `main` | Main file path: `app.py`.
+4. Click **Deploy!**
+
+---
+
+### 2. 🌀 Replit (1-Click Instant Cloud Container)
+1. Go to [Replit.com](https://replit.com/).
+2. Click **"+ Create Repl"** -> **"Import from GitHub"**.
+3. Paste repository URL: `https://github.com/THEPUCHU/s-o-c`
+4. Click **"Import from GitHub"**. Replit will auto-detect `.replit` and launch `app.py` automatically!
+
+---
+
+### 3. 📐 Vercel / Netlify / GitHub Pages (Zero-Config Web App)
+- **Vercel**: Import `https://github.com/THEPUCHU/s-o-c` into Vercel dashboard. It deploys `index.html` instantly.
+- **GitHub Pages**:
+  1. Go to GitHub repo settings: `https://github.com/THEPUCHU/s-o-c/settings/pages`.
+  2. Under **Source**, select `main` branch and `/ (root)` directory.
+  3. Save! Your app will be live at `https://THEPUCHU.github.io/s-o-c/`.
+
+---
+
+## 💻 Local Operating Instructions
+
+### Option A: Running via Streamlit (Python)
+```bash
+git clone https://github.com/THEPUCHU/s-o-c.git
+cd s-o-c
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+### Option B: Running via Python HTTP Server
+```bash
+git clone https://github.com/THEPUCHU/s-o-c.git
+cd s-o-c
+python -m http.server 8100
+```
+Open [http://localhost:8100/](http://localhost:8100/) in your browser.
 
 ---
 
@@ -33,57 +83,5 @@
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-- Any modern web browser (Chrome, Firefox, Edge, Safari).
-- Python 3.x (or any local static HTTP server).
-
-### Installation & Launch
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/THEPUCHU/s-o-c.git
-   cd s-o-c
-   ```
-
-2. **Launch the web application:**
-   ```bash
-   python -m http.server 8100
-   ```
-
-3. **Open in browser:**
-   Navigate to `http://localhost:8100/`
-
----
-
-## 📸 Architecture
-
-```mermaid
-graph TD
-    A[Cyber Attack Alert Ingestion] --> B[FORTIS Master Orchestrator]
-    B --> C[Threat Intel Agent]
-    B --> D[Log Correlation Agent]
-    B --> E[Malware Inspector]
-    B --> F[Cloud Guardian Agent]
-    C --> G[Consensus & Risk Scoring Engine]
-    D --> G
-    E --> G
-    F --> G
-    G --> H[Compliance Evaluator]
-    G --> I[SOAR Countermeasures Engine]
-    I --> J{Risk Score > 85%?}
-    J -- No --> K[Automated EDR Host Isolation & Firewall Lock]
-    J -- Yes --> L[HITL Governance Queue]
-    K --> M[Executive Incident Report & Threat Removal Verdict]
-    L --> M
-```
-
----
-
 ## 📜 License
-MIT License. Developed for Advanced Security Operations Centers and Autonomous Agent Hackathons.
-=======
-# s-o-c
-its an soc
->>>>>>> 445736bc2e59e32a7e9f7164f17914a5b3f60f29
+MIT License. Developed for Advanced Security Operations Centers and Autonomous Agent Intelligence Applications.

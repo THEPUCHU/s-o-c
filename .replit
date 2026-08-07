@@ -1,0 +1,8 @@
+run = "streamlit run app.py --server.port 8080 --server.address 0.0.0.0"
+entrypoint = "app.py"
+
+[nix]
+channel = "stable-23_05"
+
+[deployment]
+run = ["streamlit", "run", "app.py", "--server.port", "8080", "--server.address", "0.0.0.0"]
