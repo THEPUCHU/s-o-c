@@ -1,67 +1,39 @@
+import json
 import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
-from agents.tools import get_ip_info
-import datetime
 
-def threat_intel_agent(state: dict) -> dict:
-    """
-    Real Threat Intel Agent: Uses Groq to autonomously trigger tools and analyze data.
-    """
-    # 1. Grab the IP from the state
-    iocs = state.get("iocs", [])
-    if not iocs:
-        return {"threat_intel_report": "No IOCs provided for analysis."}
-    
-    # 2. Connect to Groq using Streamlit's secure secrets
-    api_key = st.secrets["GROQ_API_KEY"]
-    
-    # Using Llama-3 8B because it is blazing fast for tool calling
-    llm = ChatGroq(
-        model="llama3-8b-8192", 
-        temperature=0.2, 
-        api_key=api_key
-    )
-    
-    # 3. Give the LLM access to our tool
-    llm_with_tools = llm.bind_tools([get_ip_info])
-    
-    # 4. Give the AI its instructions
-    sys_msg = SystemMessage(
-        content="You are a Senior Cyber Threat Intelligence Analyst. "
-                "Use your tools to investigate the provided IP addresses. "
-                "Write a brief 2-sentence intelligence report summarizing what you found."
-    )
-    user_msg = HumanMessage(content=f"Investigate this IP: {iocs[0]}")
-    
-    # 5. Let the AI think and act
-    response = llm_with_tools.invoke([sys_msg, user_msg])
-    
-    # 6. Check if the AI decided to use the tool
-    if response.tool_calls:
-        tool_call = response.tool_calls[0]
+class SOCAgentOrchestrator:
+    def __init__(self, source="internal-ti", case_id="UNKNOWN", analyst="System"):
+        self.source = source
+        self.case_id = case_id
+        self.analyst = analyst
+
+    def enrich_case(self, observables: list) -> dict:
+        if not observables:
+            return {"orchestrator": {"threat_intel_result": {"summary": {"overall_risk": "low"}}}}
         
-        if tool_call['name'] == 'get_ip_info':
-            ip_arg = tool_call['args']['ip_address']
+        try:
+            # Connect to Groq
+            llm = ChatGroq(model="llama3-8b-8192", temperature=0.1, api_key=st.secrets["GROQ_API_KEY"])
             
-            # Execute the python function
-            tool_result = get_ip_info.invoke({"ip_address": ip_arg})
+            sys_msg = SystemMessage(content=(
+                "You are an expert Cyber Threat Intelligence AI. Analyze the provided network observables (IPs, domains, hashes). "
+                "You must respond ONLY with a valid, raw JSON object using this exact schema, nothing else: "
+                "{\"orchestrator\": {\"threat_intel_result\": {\"summary\": {\"overall_risk\": \"high\", \"details\": \"Your detailed analysis here\"}}}} "
+                "Set overall_risk to 'high', 'medium', or 'low' based on the indicators."
+            ))
             
-            # Send the data back to the AI so it can write the final report
-            final_msg = HumanMessage(content=f"The tool returned: {tool_result}. Write the final report.")
-            final_response = llm.invoke([sys_msg, user_msg, response, final_msg])
-            report_text = final_response.content
-    else:
-        report_text = response.content
-
-    # 7. Update the LangGraph State
-    log = {
-        "agent": "ThreatIntel (Groq)", 
-        "action": "Autonomously queried external API", 
-        "timestamp": str(datetime.datetime.now())
-    }
-    
-    return {
-        "threat_intel_report": report_text, 
-        "explainability_log": [log]
-    }
+            user_msg = HumanMessage(content=f"Analyze these observables: {json.dumps(observables)}")
+            response = llm.invoke([sys_msg, user_msg])
+            
+            # Clean and parse the LLM's JSON response
+            raw_content = response.content.strip().strip('```json').strip('```')
+            return json.loads(raw_content)
+            
+        except Exception as e:
+            # Fallback structure if the API fails so the main orchestrator doesn't crash
+            return {
+                "error": str(e),
+                "orchestrator": {"threat_intel_result": {"summary": {"overall_risk": "high", "details": "API failure."}}}
+            }
