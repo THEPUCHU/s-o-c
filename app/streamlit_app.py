@@ -6,7 +6,6 @@ import pandas as pd
 from pathlib import Path
 
 # --- BULLETPROOF PATH ROUTING ---
-# This ensures it works no matter where GitHub/Streamlit runs it
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -19,38 +18,69 @@ except ImportError:
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="SOC Intelligence",
-    page_icon="👁️",
+    page_icon="🔥",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- CLEAN ENTERPRISE CSS ---
+# --- BLACK & ORANGE CSS ---
 st.markdown("""
     <style>
-    .stApp { background-color: #f8fafc; color: #0f172a; }
-    .stSidebar { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
+    /* Main Background & Global Text */
+    .stApp { background-color: #050505; color: #eaeaea; }
     
-    /* Sleek white metric cards */
-    div[data-testid="metric-container"] {
-        background-color: #ffffff;
-        border: 1px solid #e2e8f0;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    /* Sidebar */
+    [data-testid="stSidebar"] { 
+        background-color: #0d0d0d; 
+        border-right: 2px solid #ff6600; 
     }
     
-    /* Clean headers */
-    h1, h2, h3 { color: #1e293b; font-weight: 600; }
+    /* Headers */
+    h1, h2, h3, h4, h5, h6 { 
+        color: #ff8c00 !important; 
+        font-weight: 600; 
+    }
     
-    /* Custom divider */
-    hr { border-top: 2px solid #cbd5e1; }
+    /* Metric Cards */
+    [data-testid="stMetric"] {
+        background-color: #111111;
+        border: 1px solid #333333;
+        border-top: 3px solid #ff6600;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(255, 102, 0, 0.15);
+    }
+    [data-testid="stMetricValue"] { color: #ffffff !important; }
+    [data-testid="stMetricLabel"] { color: #ff8c00 !important; }
+    
+    /* Dividers */
+    hr { 
+        border-top: 2px solid #ff6600 !important; 
+        opacity: 0.3; 
+    }
+    
+    /* Primary Buttons */
+    div.stButton > button[kind="primary"] {
+        background-color: #ff6600 !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+        border: 1px solid #ff8c00 !important;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #e65c00 !important;
+        color: #ffffff !important;
+        border: 1px solid #ff6600 !important;
+    }
+    
+    /* Dataframes/Tables */
+    .stDataFrame { border: 1px solid #ff6600; }
     </style>
 """, unsafe_allow_html=True)
 
 # --- HEADER SECTION ---
 col_logo, col_title = st.columns([1, 11])
 with col_logo:
-    st.markdown("## 👁️") # Placeholder for an enterprise logo
+    st.markdown("## 🔥")
 with col_title:
     st.title("Enterprise SOC Intelligence Platform")
     st.caption("Autonomous Agentic Threat Resolution & Policy Enforcement")
@@ -122,7 +152,7 @@ if run_workflow:
     
     with col_left:
         st.markdown("### 📋 Executive Summary")
-        st.success("**Root Cause:** A compromised IAM role (`dev-ops-admin`) was utilized to alter an S3 bucket policy, exposing sensitive data to the public internet.")
+        st.warning("**Root Cause:** A compromised IAM role (`dev-ops-admin`) was utilized to alter an S3 bucket policy, exposing sensitive data to the public internet.")
         
         st.markdown("### 🛡️ Autonomous Containment Plan")
         action_df = pd.DataFrame({
