@@ -18,7 +18,7 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 # 4. Now the import will work
-from soc_agent_orchestrator import SOCAgentOrchestrator
+from agents.soc_agent_orchestrator import SOCAgentOrchestrator
 
 
 
