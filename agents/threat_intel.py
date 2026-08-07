@@ -1,21 +1,27 @@
 import streamlit as st
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
 from agents.tools import get_ip_info
 import datetime
 
 def threat_intel_agent(state: dict) -> dict:
     """
-    Real Threat Intel Agent: Uses an LLM to autonomously trigger tools and analyze data.
+    Real Threat Intel Agent: Uses Groq to autonomously trigger tools and analyze data.
     """
     # 1. Grab the IP from the state
     iocs = state.get("iocs", [])
     if not iocs:
         return {"threat_intel_report": "No IOCs provided for analysis."}
     
-    # 2. Connect to the LLM using Streamlit's secure secrets
-    api_key = st.secrets["OPENAI_API_KEY"]
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, api_key=api_key)
+    # 2. Connect to Groq using Streamlit's secure secrets
+    api_key = st.secrets["GROQ_API_KEY"]
+    
+    # Using Llama-3 8B because it is blazing fast for tool calling
+    llm = ChatGroq(
+        model="llama3-8b-8192", 
+        temperature=0.2, 
+        api_key=api_key
+    )
     
     # 3. Give the LLM access to our tool
     llm_with_tools = llm.bind_tools([get_ip_info])
@@ -50,7 +56,7 @@ def threat_intel_agent(state: dict) -> dict:
 
     # 7. Update the LangGraph State
     log = {
-        "agent": "ThreatIntel", 
+        "agent": "ThreatIntel (Groq)", 
         "action": "Autonomously queried external API", 
         "timestamp": str(datetime.datetime.now())
     }
