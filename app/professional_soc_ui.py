@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 from pathlib import Path
 
 import streamlit as st
@@ -243,6 +244,42 @@ def get_case_summary(result):
     return summary
 
 
+def show_live_operation_log(incident, case_id, analyst):
+    steps = [
+        "Collecting telemetry from endpoint, identity, and network sources",
+        "Analyzing malicious indicators and threat intelligence enrichment",
+        "Reviewing cloud posture and privilege configuration",
+        "Assessing compliance drift and policy violations",
+        "Correlating log activity and user behavior anomalies",
+        "Identifying the active attack path and blast radius",
+        "Blocking suspicious network connections and isolating affected assets",
+        "Revoking risky credentials and enforcing tighter access controls",
+        "Triggering incident response workflow and escalation actions",
+        "Threat neutralization completed; monitoring the environment for recurrence",
+    ]
+
+    log_container = st.container()
+    with log_container:
+        st.subheader("Live operations log")
+        log_box = st.empty()
+
+    messages = []
+    for index, step in enumerate(steps, start=1):
+        timestamp = time.strftime("%H:%M:%S")
+        messages.append(f"[{timestamp}] {index}. {step}")
+        log_box.code("\n".join(messages), language="text")
+        time.sleep(0.7)
+
+    final_status = {
+        "case_id": case_id,
+        "analyst": analyst,
+        "incident_type": incident.get("case_id", "unknown"),
+        "status": "Threat containment workflow completed",
+        "summary": "The AI has evaluated the threat, correlated evidence, and executed containment actions.",
+    }
+    log_box.code(json.dumps(final_status, indent=2), language="json")
+
+
 with st.sidebar:
     st.header("Incident Control")
     scenario_name = st.selectbox("Threat scenario", list(THREAT_SCENARIOS.keys()))
@@ -275,6 +312,8 @@ if run_button:
         summary = get_case_summary(result)
 
         st.success(f"Decision: {summary['decision']} | Next step: {summary['next_step']}")
+
+        show_live_operation_log(incident, case_id, analyst)
 
         metric_cols = st.columns(4)
         with metric_cols[0]:
