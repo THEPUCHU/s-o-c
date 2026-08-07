@@ -3,7 +3,10 @@ import os
 import json
 import sys
 from pathlib import Path
+from pathlib import Path
 
+# This dynamically sets the root directory to wherever streamlit_app.py is located
+PROJECT_ROOT = Path(__file__).parent
 import streamlit as st
 
 # 1. Get the absolute path of the root directory (where streamlit_app.py lives)
