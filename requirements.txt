@@ -1,1 +1,8 @@
-streamlit>=1.28.0
+streamlit
+pandas
+langchain
+langchain-openai
+langchain-groq
+langchain-community
+requests
+python-dotenv
