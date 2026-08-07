@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🛡️ FORTIS — Autonomous Multi-Agent SOC Intelligence Platform
 
 > **FORTIS** is an enterprise-grade, real-time autonomous Multi-Agent Security Operations Center (SOC) platform designed to ingest high-severity alert telemetry, decompose complex cyber incidents, execute automated SOAR containment playbooks, and generate executive breach reports with explicit Threat Neutralization Verdicts.
@@ -82,3 +83,7 @@ graph TD
 
 ## 📜 License
 MIT License. Developed for Advanced Security Operations Centers and Autonomous Agent Hackathons.
+=======
+# s-o-c
+its an soc
+>>>>>>> 445736bc2e59e32a7e9f7164f17914a5b3f60f29
