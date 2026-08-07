@@ -51,8 +51,8 @@ class SOCAgentOrchestrator:
         agent = module.MalwareAnalysisAgent(case_id=self.case_id, analyst=self.analyst)
         return agent.analyze_file(file_path)
 
-    def _run_cloud(self, cloud_config: Dict[str, Any], cloud: str = "aws") -> Optional[Dict[str, Any]]:
-        module = self._load_specialist("cloud_security", "cloud security.py")
+    def _run_cloud_security(self, cloud_config: Dict[str, Any], cloud: str = "aws") -> Optional[Dict[str, Any]]:
+        module = self._load_specialist("cloud_security", "cloud_security.py")
         orchestrator = module.SOCAgentOrchestrator(cloud=cloud, case_id=self.case_id, analyst=self.analyst)
         return orchestrator.assess_cloud_posture(cloud_config)
 
@@ -62,12 +62,12 @@ class SOCAgentOrchestrator:
         return orchestrator.assess_compliance(controls)
 
     def _run_threat_intel(self, observables: List[Dict[str, Any]], source: str = "internal-ti") -> Optional[Dict[str, Any]]:
-        module = self._load_specialist("threat_intel", "threat intel.py")
+        module = self._load_specialist("threat_intel", "threat_intel.py")
         orchestrator = module.SOCAgentOrchestrator(source=source, case_id=self.case_id, analyst=self.analyst)
         return orchestrator.enrich_case(observables)
 
     def _run_log_analysis(self, logs: List[str]) -> Optional[Dict[str, Any]]:
-        module = self._load_specialist("log_analysis", "log analysis.py")
+        module = self._load_specialist("log_analysis", "log_analysis.py")
         workflow = module.SOCLogWorkflow(case_id=self.case_id, analyst=self.analyst)
         return workflow.run(logs)
 
