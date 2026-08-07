@@ -1,4 +1,8 @@
+streamlit
+pandas
 langchain
 langchain-openai
+langchain-groq
+langchain-community
 requests
 python-dotenv
