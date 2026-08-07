@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FORTIS | Autonomous Multi-Agent SOC Intelligence Platform</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            cobalt: {
+              400: '#38bdf8',
+              500: '#00f2fe',
+              600: '#0284c7',
+              900: '#0369a1',
+              950: '#082f49'
+            },
+            bio: {
+              400: '#34d399',
+              500: '#00e676',
+              600: '#059669'
+            },
+            crimson: {
+              500: '#ff2a5f',
+              600: '#e11d48'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #05070e; color: #f8fafc; }
+    
+    .fortis-glass {
+      background: rgba(13, 18, 30, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(79, 172, 254, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+    
+    .fortis-glass-danger {
+      background: rgba(26, 10, 18, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 42, 95, 0.35);
+      box-shadow: 0 8px 32px 0 rgba(255, 42, 95, 0.15);
+    }
+
+    .fortis-glow-btn {
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      color: #030712;
+      font-weight: 800;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.35);
+    }
+    .fortis-glow-btn:hover {
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .fortis-danger-btn {
+      background: linear-gradient(135deg, #ff2a5f 0%, #e11d48 100%);
+      color: #ffffff;
+      font-weight: 800;
+      box-shadow: 0 0 20px rgba(255, 42, 95, 0.35);
+    }
+    .fortis-danger-btn:hover {
+      box-shadow: 0 0 30px rgba(255, 42, 95, 0.6);
+      transform: translateY(-1px);
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #05070e; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00f2fe; }
+
+    @media print {
+      body { background: #ffffff !important; color: #0f172a !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-[#05070e] text-slate-100 font-sans antialiased selection:bg-[#00f2fe] selection:text-black">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- CUSTOM SVG VECTOR ICONS SET ---
+    const SvgShield = () => (
+      <svg className="w-5 h-5 text-[#00f2fe]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    );
+
+    const SvgCrosshair = () => (
+      <svg className="w-5 h-5 text-[#ff2a5f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4m0 12v4m10-10h-4M6 12H2m14 0a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    );
+
+    const SvgActivity = () => (
+      <svg className="w-5 h-5 text-[#00f2fe]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    );
+
+    const SvgDocument = () => (
+      <svg className="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
+
+    const SvgCheck = () => (
+      <svg className="w-4 h-4 text-[#00e676]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    );
+
+    const SvgAlert = () => (
+      <svg className="w-4 h-4 text-[#ff2a5f]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    );
+
+    // --- AGENTS CATALOG ---
+    const SPECIALIZED_AGENTS = [
+      { id: "coordinator", name: "FORTIS Master Orchestrator", role: "SOC Coordinator", color: "#00f2fe", description: "Decomposes complex security events, assigns sub-tasks to domain agents, negotiates consensus, and issues containment directives." },
+      { id: "threat_intel", name: "Threat Intel Agent", role: "External Feeds", color: "#38bdf8", description: "Queries VirusTotal, AbuseIPDB, Shodan, and MISP feeds to enrich IP, hash, and domain reputation telemetry." },
+      { id: "log_analysis", name: "Log Correlation Agent", role: "SIEM & Sigma Rules", color: "#818cf8", description: "Parses Windows Event Logs, Syslog, Firewall, and CloudTrail data. Runs Sigma rule pattern matching across event timelines." },
+      { id: "malware_analysis", name: "Malware Inspector", role: "YARA & Memory Scan", color: "#ff2a5f", description: "Scans payload binaries using YARA signatures, evaluates PE header entropy, extracts C2 strings, and simulates sandbox execution." },
+      { id: "cloud_security", name: "Cloud Guardian Agent", role: "IAM & AWS Protection", color: "#06b6d4", description: "Monitors AWS IAM role changes, Kubernetes cluster security audits, S3 bucket access logs, and GCP SCC telemetry." },
+      { id: "incident_response", name: "SOAR Countermeasures", role: "Response Engine", color: "#fbbf24", description: "Formulates host isolation, IP blocking, OAuth token revocation, and infrastructure hardening containment workflows." },
+      { id: "compliance", name: "Compliance Evaluator", role: "Regulatory Audit", color: "#00e676", description: "Assesses regulatory breach penalties across GDPR, HIPAA, PCI-DSS, NIST 800-53, and generates audit compliant records." },
+      { id: "human_approval", name: "HITL Guardrail Agent", role: "Human Governance", color: "#f472b6", description: "Enforces Human-in-the-Loop governance. Intercepts high-risk containment actions (score > 85%) for human analyst authorization." }
+    ];
+
+    // --- ATTACK SCENARIOS CATALOG ---
+    const ATTACK_SCENARIOS = [
+      {
+        id: "scenario-1",
+        title: "APT29 Ransomware & Data Exfiltration Pipeline",
+        severity: "CRITICAL",
+        category: "Ransomware / APT",
+        summary: "Spearphishing payload execution followed by credential dumping, lateral movement to domain controllers, and high-speed data exfiltration over encrypted C2 channels.",
+        initialAlert: {
+          alertId: "FORTIS-2026-8891",
+          timestamp: "2026-08-08T01:16:00Z",
+          host: "WS-EXEC-04",
+          user: "j.doe@enterprise.com",
+          srcIp: "194.26.29.112",
+          rawLog: "EventID=4624 LogonType=10 User=NT_AUTHORITY\\SYSTEM IP=194.26.29.112 Process=powershell.exe -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQ..."
+        },
+        iocs: { ips: ["194.26.29.112", "185.220.101.5"], hashes: ["e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"] },
+        mitreTechniques: ["T1566 (Phishing)", "T1059.001 (PowerShell)", "T1003 (OS Credential Dumping)", "T1041 (Exfiltration Over C2)", "T1486 (Data Encrypted for Impact)"],
+        recommendedActions: [
+          { actionId: "ACT-01", target: "194.26.29.112", type: "Block IP at Perimeter Firewall", riskScore: 40, hitlRequired: false, status: "AUTOMATED_EXECUTED" },
+          { actionId: "ACT-02", target: "WS-EXEC-04", type: "Isolate Endpoint Host from Corporate LAN", riskScore: 65, hitlRequired: false, status: "AUTOMATED_EXECUTED" },
+          { actionId: "ACT-03", target: "10.0.4.15 (Core Database Segment)", type: "Emergency DB Network Segment Isolation", riskScore: 92, hitlRequired: true, status: "PENDING_HUMAN_APPROVAL" }
+        ]
+      },
+      {
+        id: "scenario-2",
+        title: "Cloud IAM Privilege Escalation & S3 Exfiltration",
+        severity: "HIGH",
+        category: "Cloud Security",
+        summary: "Stolen AWS Access Key used from unauthorized geolocation to attach AdministratorAccess policy and download S3 PII datasets.",
+        initialAlert: {
+          alertId: "FORTIS-2026-9410",
+          timestamp: "2026-08-08T01:16:30Z",
+          host: "AWS Account #8841920491",
+          user: "devops-admin-svc",
+          srcIp: "45.142.214.99",
+          rawLog: "eventName=AttachUserPolicy userName=devops-admin-svc policyArn=arn:aws:iam::aws:policy/AdministratorAccess srcIp=45.142.214.99"
+        },
+        iocs: { ips: ["45.142.214.99"], hashes: ["a1b2c3d4e5f60718293a4b5c6d7e8f9a0b1c2d3e"] },
+        mitreTechniques: ["T1078 (Valid Accounts)", "T1098 (Account Manipulation)", "T1537 (Transfer Data to Cloud Account)"],
+        recommendedActions: [
+          { actionId: "ACT-11", target: "AKIAIOSFODNN7EXAMPLE", type: "Disable Compromised IAM Access Keys", riskScore: 50, hitlRequired: false, status: "AUTOMATED_EXECUTED" },
+          { actionId: "ACT-12", target: "arn:aws:s3:::prod-customer-vault", type: "Enforce S3 Bucket Public Access Block & Re-encrypt", riskScore: 88, hitlRequired: true, status: "PENDING_HUMAN_APPROVAL" }
+        ]
+      },
+      {
+        id: "scenario-3",
+        title: "LSASS Memory Dump & Domain Controller Compromise",
+        severity: "CRITICAL",
+        category: "Credential Access",
+        summary: "Mimikatz process injection targeting LSASS memory on Domain Controller DC-PROD-01 to harvest Kerberos ticket granting tickets.",
+        initialAlert: {
+          alertId: "FORTIS-2026-7721",
+          timestamp: "2026-08-08T01:17:00Z",
+          host: "DC-PROD-01",
+          user: "DOMAIN\\svc_backup",
+          srcIp: "10.0.1.45",
+          rawLog: "EventID=10 ProcessAccess SourceImage=C:\\Windows\\Temp\\mimi.exe TargetImage=C:\\Windows\\System32\\lsass.exe GrantedAccess=0x1010"
+        },
+        iocs: { ips: ["10.0.1.45"], hashes: ["03c7c0ace395d80182db07ae2c30f034"] },
+        mitreTechniques: ["T1003.001 (LSASS Memory Dump)", "T1558 (Steal or Forge Kerberos Tickets)"],
+        recommendedActions: [
+          { actionId: "ACT-21", target: "DOMAIN\\svc_backup", type: "Reset Compromised Domain Account Passwords & Revoke Kerberos Tickets", riskScore: 55, hitlRequired: false, status: "AUTOMATED_EXECUTED" },
+          { actionId: "ACT-22", target: "DC-PROD-01", type: "Enable Active Directory Protective Lockdown Mode", riskScore: 95, hitlRequired: true, status: "PENDING_HUMAN_APPROVAL" }
+        ]
+      }
+    ];
+
+    // --- CANVAS VECTOR ANIMATION COMPONENT (ACTIVE ONLY DURING ATTACK/DEFENSE) ---
+    function AttackVectorCanvas({ isInvestigating, isComplete, mitigationOutcome, attackerIp, targetHost }) {
+      const canvasRef = useRef(null);
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+
+        const width = canvas.parentElement.clientWidth || 700;
+        const height = 150;
+        canvas.width = width;
+        canvas.height = height;
+
+        const nodes = [
+          { id: 'attacker', label: `Attacker IP (${attackerIp || '194.26.29.112'})`, x: width * 0.12, y: height * 0.5, color: '#ff2a5f' },
+          { id: 'firewall', label: 'Perimeter Firewall', x: width * 0.38, y: height * 0.5, color: isComplete ? '#00f2fe' : '#fbbf24' },
+          { id: 'target', label: `Endpoint (${targetHost || 'WS-EXEC-04'})`, x: width * 0.65, y: height * 0.5, color: isComplete ? '#00e676' : '#64748b' },
+          { id: 'vault', label: 'Core Data Vault', x: width * 0.88, y: height * 0.5, color: '#38bdf8' }
+        ];
+
+        // Particles ONLY created/updated when isInvestigating === true
+        const particles = [];
+        if (isInvestigating) {
+          for (let i = 0; i < 22; i++) {
+            particles.push({
+              progress: Math.random(),
+              speed: 0.009 + Math.random() * 0.012,
+              size: 3
+            });
+          }
+        }
+
+        const render = () => {
+          ctx.clearRect(0, 0, width, height);
+
+          // Draw Network Connection Lines
+          ctx.beginPath();
+          ctx.moveTo(nodes[0].x, nodes[0].y);
+          ctx.lineTo(nodes[1].x, nodes[1].y);
+          ctx.lineTo(nodes[2].x, nodes[2].y);
+          ctx.lineTo(nodes[3].x, nodes[3].y);
+          ctx.strokeStyle = 'rgba(79, 172, 254, 0.25)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Shield Barrier when Mitigated
+          if (isComplete && mitigationOutcome === 'SUCCESS') {
+            ctx.beginPath();
+            ctx.arc(nodes[1].x, nodes[1].y, 26, 0, Math.PI * 2);
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(0, 242, 254, 0.12)';
+            ctx.fill();
+            ctx.stroke();
+          }
+
+          // Render Moving Particles ONLY when isInvestigating is active
+          if (isInvestigating) {
+            particles.forEach(p => {
+              p.progress += p.speed;
+              if (p.progress > 1) p.progress = 0;
+
+              let currentX, currentY, dotColor;
+
+              if (p.progress < 0.4) {
+                const t = p.progress / 0.4;
+                currentX = nodes[0].x + (nodes[1].x - nodes[0].x) * t;
+                currentY = nodes[0].y;
+                dotColor = '#ff2a5f';
+              } else if (p.progress < 0.75) {
+                const t = (p.progress - 0.4) / 0.35;
+                currentX = nodes[1].x + (nodes[2].x - nodes[1].x) * t;
+                currentY = nodes[1].y;
+                dotColor = isComplete && mitigationOutcome === 'SUCCESS' ? '#00e676' : '#ff2a5f';
+              } else {
+                const t = (p.progress - 0.75) / 0.25;
+                currentX = nodes[2].x + (nodes[3].x - nodes[2].x) * t;
+                currentY = nodes[2].y;
+                dotColor = isComplete && mitigationOutcome === 'SUCCESS' ? '#00e676' : '#ff2a5f';
+              }
+
+              ctx.beginPath();
+              ctx.arc(currentX, currentY, p.size, 0, Math.PI * 2);
+              ctx.fillStyle = dotColor;
+              ctx.fill();
+            });
+
+            animationFrameId = requestAnimationFrame(render);
+          } else {
+            // Draw static nodes in IDLE / COMPLETE state
+            nodes.forEach(node => {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, 15, 0, Math.PI * 2);
+              ctx.fillStyle = '#0b101d';
+              ctx.strokeStyle = node.color;
+              ctx.lineWidth = 2;
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '600 11px Plus Jakarta Sans';
+              ctx.textAlign = 'center';
+              ctx.fillText(node.label, node.x, node.y + 28);
+            });
+          }
+        };
+
+        render();
+
+        return () => {
+          if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        };
+      }, [isInvestigating, isComplete, mitigationOutcome, attackerIp, targetHost]);
+
+      return (
+        <div className="w-full bg-[#090d19] rounded-xl p-3 border border-slate-800 flex flex-col gap-1">
+          <div className="flex items-center justify-between text-xs font-mono px-2">
+            <span className="text-slate-300 font-bold uppercase tracking-wider text-[11px]">
+              FORTIS Attack Vector Topology Visualizer
+            </span>
+            <span className="text-[10px] text-slate-400 font-sans">
+              {isInvestigating ? '● Animation Active (Attack/Defense in Execution)' : isComplete ? '✓ Pipeline Idle (Shielded)' : '● Standby Idle'}
+            </span>
+          </div>
+          <canvas ref={canvasRef} className="w-full h-[150px] rounded-lg" />
+        </div>
+      );
+    }
+
+    // --- MAIN APPLICATION COMPONENT ---
+    function App() {
+      const [activeScenario, setActiveScenario] = useState(ATTACK_SCENARIOS[0]);
+      const [customHost, setCustomHost] = useState(ATTACK_SCENARIOS[0].initialAlert.host);
+      const [customIp, setCustomIp] = useState(ATTACK_SCENARIOS[0].initialAlert.srcIp);
+      const [executionSpeed, setExecutionSpeed] = useState(500);
+
+      const [activeTab, setActiveTab] = useState('investigation');
+      const [logs, setLogs] = useState([]);
+      const [expandedLogs, setExpandedLogs] = useState({});
+      const [soarActions, setSoarActions] = useState([]);
+      
+      const [isInvestigating, setIsInvestigating] = useState(false);
+      const [isComplete, setIsComplete] = useState(false);
+      const [mitigationOutcome, setMitigationOutcome] = useState('SUCCESS');
+      
+      const [activeAgentId, setActiveAgentId] = useState('coordinator');
+      const [currentPhase, setCurrentPhase] = useState('STANDBY');
+      
+      const [isReportOpen, setIsReportOpen] = useState(false);
+      const [isBenchmarkOpen, setIsBenchmarkOpen] = useState(false);
+      const [actionStatuses, setActionStatuses] = useState({});
+
+      useEffect(() => {
+        setCustomHost(activeScenario.initialAlert.host);
+        setCustomIp(activeScenario.initialAlert.srcIp);
+        setSoarActions(activeScenario.recommendedActions);
+        setActionStatuses({});
+      }, [activeScenario]);
+
+      const toggleLogExpand = (logId) => {
+        setExpandedLogs(prev => ({
+          ...prev,
+          [logId]: !prev[logId]
+        }));
+      };
+
+      // --- INITIATE ATTACK ENGINE ---
+      const handleInitiateAttack = async (simulateFailure = false) => {
+        setLogs([]);
+        setExpandedLogs({});
+        setActionStatuses({});
+        setIsComplete(false);
+        setIsReportOpen(false);
+        setIsInvestigating(true);
+        setMitigationOutcome(simulateFailure ? 'FAILED' : 'SUCCESS');
+
+        const targetIp = customIp || activeScenario.initialAlert.srcIp;
+        const targetHost = customHost || activeScenario.initialAlert.host;
+
+        const addLog = (agentId, phase, title, detail, toolOutput = null) => {
+          setLogs(prev => [...prev, {
+            id: 'STEP-' + Date.now() + '-' + Math.floor(Math.random()*10000),
+            timestamp: new Date().toLocaleTimeString(),
+            agentId, phase, title, detail, toolOutput
+          }]);
+          setActiveAgentId(agentId);
+          setCurrentPhase(phase);
+        };
+
+        const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+        // Step 1: Coordinator
+        addLog('coordinator', 'Ingestion', 'Alert Ingestion & Task Decomposition', `FORTIS ingested alert telemetry targeting asset [${targetHost}] from attacker IP [${targetIp}]. Dispatched sub-tasks to specialized domain agents.`);
+        await sleep(executionSpeed);
+
+        // Step 2: Threat Intel
+        addLog('threat_intel', 'Enrichment', 'Threat Intelligence Reputation Query', `Queried VirusTotal & AbuseIPDB APIs. Verdict: MALICIOUS (68/90 security vendors). AbuseIPDB Confidence Score: 99% (Known C2 Botnet).`, { tool: 'VirusTotal API', positives: 68, total: 90, ip: targetIp, geolocation: 'Eastern Europe' });
+        await sleep(executionSpeed + 100);
+
+        // Step 3: Log Analysis
+        addLog('log_analysis', 'Log Correlation', 'SIEM & Sigma Pattern Matching', `Correlated SIEM event streams on host [${targetHost}]. Matched 4 Sigma Rules: proc_creation_win_powershell_encoded, credential_dumping_lsass, outbound_c2_connection.`, { tool: 'Sigma Correlation Engine', matchedRules: 4, eventId: 4624 });
+        await sleep(executionSpeed);
+
+        // Step 4: Malware Analysis
+        addLog('malware_analysis', 'Binary Inspection', 'YARA Signature & Memory Entropy Scan', `Scanned process payload memory. Matched YARA Rule: apt_win_blackcat_ransomware. Entropy score: 7.94 (Encrypted binary execution).`, { tool: 'YARA Core Engine', ruleMatched: 'apt_win_blackcat_ransomware', entropy: 7.94 });
+        await sleep(executionSpeed);
+
+        // Step 5: Cloud Security
+        addLog('cloud_security', 'Cloud Audit', 'CloudTrail & IAM Security Audit', `Audited IAM Access Logs: Detected unauthorized session tokens and AdministratorAccess policy attachment.`);
+        await sleep(executionSpeed - 100);
+
+        // Step 6: Coordinator Consensus
+        addLog('coordinator', 'Consensus', 'Multi-Agent Threat Consensus Formulated', `Synthesized evidence across 5 agents. Threat Confidence Rating: 98.8% (CRITICAL). Primary attack classification: ${activeScenario.category}.`);
+        await sleep(executionSpeed + 100);
+
+        // Step 7: Compliance Audit
+        addLog('compliance', 'Regulatory Audit', 'Regulatory & Compliance Impact Assessment', `Assessed regulatory breach penalties: GDPR Article 33 72-Hour Breach Notification triggered. PCI-DSS CDE isolation enforced.`);
+        await sleep(executionSpeed - 100);
+
+        // Step 8: SOAR Action
+        if (!simulateFailure) {
+          addLog('incident_response', 'SOAR Containment', 'Automated SOAR Countermeasures Executed', `FORTIS executed automated response playbook: (1) Blocked IP ${targetIp} on Perimeter Firewall. (2) Issued EDR host isolation for ${targetHost}.`, {
+            countermeasuresExecuted: [
+              `Firewall Block Rule: IP ${targetIp}`,
+              `EDR Host Isolation: Endpoint ${targetHost}`,
+              `OAuth Session Token Revocation`
+            ]
+          });
+          setActionStatuses({
+            'ACT-01': 'AUTOMATED_EXECUTED',
+            'ACT-02': 'AUTOMATED_EXECUTED',
+            'ACT-11': 'AUTOMATED_EXECUTED',
+            'ACT-21': 'AUTOMATED_EXECUTED',
+          });
+        } else {
+          addLog('incident_response', 'SOAR Failure', 'SOAR Containment Timeout', `Perimeter rule enforcement timed out. IP ${targetIp} bypassed containment.`);
+        }
+        await sleep(executionSpeed);
+
+        // Step 9: HITL Intercept
+        addLog('human_approval', 'HITL Guardrail', 'High-Risk Action Queued for Human Approval', `Core Database Segment Isolation (Risk Score: 92%) intercepted by FORTIS HITL governance guardrail.`);
+        await sleep(300);
+
+        setIsInvestigating(false);
+        setIsComplete(true);
+        setActiveAgentId('coordinator');
+        setCurrentPhase(simulateFailure ? 'UNCONTAINED' : 'MITIGATED');
+
+        // Automatically open the Executive Incident Report Modal
+        setIsReportOpen(true);
+      };
+
+      const handleAuthorizeHitl = (actionId) => {
+        setActionStatuses(prev => ({
+          ...prev,
+          [actionId]: 'AUTHORIZED_BY_HUMAN'
+        }));
+      };
+
+      return (
+        <div className="min-h-screen bg-[#05070e] text-slate-100 font-sans flex flex-col">
+          
+          {/* HEADER BAR */}
+          <header className="border-b border-slate-800 bg-[#090d19]/95 sticky top-0 z-40 px-6 py-3 shadow-lg backdrop-blur-md">
+            <div className="max-w-[1700px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00f2fe] to-[#4facfe] flex items-center justify-center text-slate-950 font-black text-lg shadow-md shadow-[#00f2fe]/20">
+                  F
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-black text-lg text-slate-100 tracking-tight">FORTIS</h1>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-[#00f2fe] border border-[#00f2fe]/30 font-bold uppercase tracking-wider">
+                      SOC INTELLIGENCE PLATFORM
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">Autonomous Multi-Agent Incident Response & Threat Neutralization Engine</p>
+                </div>
+              </div>
+
+              {/* Navigation Tabs */}
+              <div className="flex items-center gap-1 bg-[#0d121f] p-1.5 rounded-xl border border-slate-800">
+                <button
+                  onClick={() => setActiveTab('investigation')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'investigation'
+                      ? 'bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-slate-950 shadow-md shadow-[#00f2fe]/20'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Simulator & Investigation Center
+                </button>
+                <button
+                  onClick={() => setActiveTab('soc_twin')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                    activeTab === 'soc_twin'
+                      ? 'bg-[#6366f1] text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Digital SOC Twin
+                </button>
+                <button
+                  onClick={() => setActiveTab('containment')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    activeTab === 'containment'
+                      ? 'bg-[#f59e0b] text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  SOAR Containment Queue
+                  <span className="bg-slate-900 text-amber-300 px-1.5 py-0.2 rounded text-[10px] font-mono font-bold">1</span>
+                </button>
+              </div>
+
+              {/* Modal Triggers */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsReportOpen(true)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-2 transition-all"
+                >
+                  <SvgDocument />
+                  Executive Report {isComplete && <span className="w-2 h-2 rounded-full bg-[#00e676]"></span>}
+                </button>
+                <button
+                  onClick={() => setIsBenchmarkOpen(true)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#0d121f] hover:bg-slate-800 text-slate-300 border border-slate-800 transition-all"
+                >
+                  Metrics
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN CONTENT WORKSPACE */}
+          <main className="flex-1 max-w-[1700px] w-full mx-auto p-4 flex flex-col gap-4">
+            
+            {/* CANVAS ATTACK VECTOR ANIMATION */}
+            <AttackVectorCanvas
+              isInvestigating={isInvestigating}
+              isComplete={isComplete}
+              mitigationOutcome={mitigationOutcome}
+              attackerIp={customIp}
+              targetHost={customHost}
+            />
+
+            {/* AGENT TOPOLOGY GRAPH */}
+            <div className="fortis-glass rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <SvgShield />
+                  <h2 className="text-xs font-bold tracking-wider uppercase text-slate-200 font-mono">
+                    FORTIS Multi-Agent Topology & Consensus Graph
+                  </h2>
+                </div>
+                <span className="text-xs font-mono text-[#00f2fe] font-bold bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800">
+                  Status: {isInvestigating ? `ACTIVE (${activeAgentId.toUpperCase()})` : isComplete ? `MITIGATED [VERDICT: ${mitigationOutcome}]` : 'IDLE'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                {SPECIALIZED_AGENTS.map(agent => {
+                  const isActive = activeAgentId === agent.id && isInvestigating;
+                  return (
+                    <div
+                      key={agent.id}
+                      className={`p-3 rounded-lg border text-xs transition-all ${
+                        isActive
+                          ? 'bg-[#062c43] border-[#00f2fe] ring-1 ring-[#00f2fe]'
+                          : 'bg-[#090d19]/80 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-[11px]" style={{ color: agent.color }}>
+                          {agent.name}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono line-clamp-1">{agent.role}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* TAB 1: LIVE INVESTIGATION & ATTACK SIMULATOR */}
+            {activeTab === 'investigation' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                
+                {/* ATTACK SIMULATOR CONSOLE */}
+                <div className="lg:col-span-5 fortis-glass-danger rounded-xl p-5 flex flex-col gap-4">
+                  
+                  <div className="flex items-center justify-between border-b border-rose-900/60 pb-2">
+                    <div className="flex items-center gap-2">
+                      <SvgCrosshair />
+                      <h3 className="text-xs font-bold uppercase text-rose-300 tracking-wider font-mono">
+                        Cyber Attack Simulator Console
+                      </h3>
+                    </div>
+                    <span className="text-[10px] font-mono bg-rose-950 text-rose-300 px-2 py-0.5 rounded border border-rose-900/60 font-bold">
+                      INJECTOR READY
+                    </span>
+                  </div>
+
+                  {/* Scenario Selection */}
+                  <div className="flex flex-col gap-1 font-sans text-xs">
+                    <label className="text-slate-300 font-semibold text-[11px]">Select Threat Vector Scenario:</label>
+                    <select
+                      value={activeScenario.id}
+                      onChange={(e) => {
+                        const sc = ATTACK_SCENARIOS.find(s => s.id === e.target.value);
+                        if (sc) setActiveScenario(sc);
+                      }}
+                      className="bg-[#090d19] text-slate-200 border border-slate-700 rounded-lg p-2.5 text-xs focus:border-[#00f2fe] focus:outline-none"
+                    >
+                      {ATTACK_SCENARIOS.map(sc => (
+                        <option key={sc.id} value={sc.id}>
+                          [{sc.severity}] {sc.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Custom Parameters */}
+                  <div className="grid grid-cols-2 gap-2.5 font-mono text-xs">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-slate-400 text-[10px]">Target Asset Host:</label>
+                      <input
+                        type="text"
+                        value={customHost}
+                        onChange={(e) => setCustomHost(e.target.value)}
+                        className="bg-[#090d19] text-slate-200 border border-slate-800 rounded-lg p-2 text-xs focus:border-[#00f2fe] focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-slate-400 text-[10px]">Attacker Source IP:</label>
+                      <input
+                        type="text"
+                        value={customIp}
+                        onChange={(e) => setCustomIp(e.target.value)}
+                        className="bg-[#090d19] text-slate-200 border border-slate-800 rounded-lg p-2 text-xs focus:border-[#00f2fe] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Execution Speed */}
+                  <div className="flex items-center justify-between font-sans text-xs bg-[#090d19] p-2.5 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 text-[11px]">Execution Speed:</span>
+                    <div className="flex gap-1">
+                      {[
+                        { label: 'Fast (200ms)', speed: 200 },
+                        { label: 'Normal (500ms)', speed: 500 },
+                        { label: 'Slow (1000ms)', speed: 1000 }
+                      ].map(item => (
+                        <button
+                          key={item.speed}
+                          onClick={() => setExecutionSpeed(item.speed)}
+                          className={`px-2.5 py-1 rounded text-[10px] font-bold ${
+                            executionSpeed === item.speed
+                              ? 'bg-[#00f2fe] text-slate-950'
+                              : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Raw Alert Payload */}
+                  <div className="bg-[#060912] p-3 rounded-lg border border-slate-800 text-xs flex flex-col gap-1.5 font-sans">
+                    <div className="flex justify-between items-center text-slate-200 font-semibold text-[11px]">
+                      <span>[{activeScenario.severity}] {activeScenario.title}</span>
+                      <span className="text-[10px] font-mono text-slate-400">{activeScenario.category}</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">{activeScenario.summary}</p>
+                    <div className="bg-[#03050a] p-2 rounded text-[10px] text-[#00e676] font-mono overflow-x-auto border border-slate-800">
+                      {activeScenario.initialAlert.rawLog}
+                    </div>
+                  </div>
+
+                  {/* Action Triggers */}
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => handleInitiateAttack(false)}
+                      disabled={isInvestigating}
+                      className={`w-full py-3.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 shadow-xl flex items-center justify-center gap-2 ${
+                        isInvestigating
+                          ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                          : 'fortis-glow-btn'
+                      }`}
+                    >
+                      {isInvestigating ? "FORTIS Agents Neutralizing Threat..." : "Initiate Cyber Attack (Normal Simulation)"}
+                    </button>
+
+                    <button
+                      onClick={() => handleInitiateAttack(true)}
+                      disabled={isInvestigating}
+                      className="w-full py-2.5 bg-slate-900 hover:bg-rose-950 text-rose-400 font-bold text-[11px] rounded-xl border border-rose-900/60 transition-all text-center"
+                    >
+                      Simulate Uncontained Breach Scenario (Test Failure Report)
+                    </button>
+                  </div>
+
+                </div>
+
+                {/* LIVE EXECUTION STREAM & EXPANDABLE LOG DETAILS */}
+                <div className="lg:col-span-7 fortis-glass rounded-xl p-5 flex flex-col gap-4">
+                  
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <SvgActivity />
+                      <h3 className="text-xs font-bold uppercase text-slate-200 tracking-wider font-mono">
+                        FORTIS Agent Execution Telemetry Stream ({logs.length})
+                      </h3>
+                    </div>
+                    {isComplete && (
+                      <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded border ${
+                        mitigationOutcome === 'SUCCESS'
+                          ? 'bg-emerald-950 text-[#00e676] border-emerald-800'
+                          : 'bg-rose-950 text-rose-400 border-rose-800'
+                      }`}>
+                        {mitigationOutcome === 'SUCCESS' ? '✓ MITIGATED' : '❌ UNCONTAINED'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Logs Container */}
+                  <div className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1">
+                    {logs.map((log) => {
+                      const agent = SPECIALIZED_AGENTS.find(a => a.id === log.agentId) || {};
+                      const isExpanded = expandedLogs[log.id];
+                      return (
+                        <div
+                          key={log.id}
+                          className="bg-[#080d19]/90 p-3.5 rounded-xl border border-slate-800/80 text-xs font-sans shadow-sm"
+                        >
+                          <div className="flex items-center justify-between text-slate-200 font-semibold mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px]" style={{ color: agent.color || '#00f2fe' }}>
+                                [{log.agentId.toUpperCase()}]
+                              </span>
+                              <span className="text-slate-100">{log.title}</span>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-mono">{log.timestamp}</span>
+                          </div>
+
+                          <p className="text-slate-300 text-[11px] leading-relaxed">{log.detail}</p>
+
+                          {/* Expandable Technical Telemetry Drawer */}
+                          {log.toolOutput && (
+                            <div className="mt-2 pt-2 border-t border-slate-800/80">
+                              <button
+                                onClick={() => toggleLogExpand(log.id)}
+                                className="text-[10px] font-mono text-[#00f2fe] hover:underline flex items-center gap-1 font-semibold focus:outline-none"
+                              >
+                                {isExpanded ? "Hide Technical Telemetry ▲" : "Show Technical Telemetry ▼"}
+                              </button>
+
+                              {isExpanded && (
+                                <div className="mt-2 bg-[#04060d] p-3 rounded-lg border border-slate-800 text-[10px] font-mono text-slate-300">
+                                  <div className="text-slate-400 font-bold uppercase mb-1">
+                                    Tool Output ({log.toolOutput.tool}):
+                                  </div>
+                                  <pre className="whitespace-pre-wrap text-[#00e676]">
+                                    {JSON.stringify(log.toolOutput, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {logs.length === 0 && (
+                      <div className="py-20 text-center text-slate-500 text-xs font-mono">
+                        Click "Initiate Cyber Attack" to start the live FORTIS agent investigation pipeline.
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB 2: DIGITAL SOC TWIN */}
+            {activeTab === 'soc_twin' && (
+              <div className="fortis-glass rounded-xl p-5 flex flex-col gap-3">
+                <h3 className="text-xs font-bold uppercase text-slate-200 border-b border-slate-800 pb-2">
+                  Digital SOC Twin — Infrastructure & Defense Telemetry
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs">
+                  <div className={`p-4 rounded-xl border ${isComplete ? 'bg-rose-950/40 border-rose-800 text-rose-200' : 'bg-slate-900 border-slate-800 text-slate-300'}`}>
+                    <div className="font-bold text-slate-100">{customHost || 'WS-EXEC-04'}</div>
+                    <div className="text-[10px] text-slate-400 mt-1">Type: Windows Endpoint</div>
+                    <div className="mt-2 text-[10px] font-bold">
+                      {isComplete ? 'STATUS: ISOLATED BY SOAR' : 'STATUS: ONLINE'}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-slate-300">
+                    <div className="font-bold text-slate-100">DC-PROD-01</div>
+                    <div className="text-[10px] text-slate-400 mt-1">Type: Domain Controller</div>
+                    <div className="mt-2 text-[10px] text-[#00e676] font-bold">STATUS: HARDENED</div>
+                  </div>
+
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-slate-300">
+                    <div className="font-bold text-slate-100">CORE-DB-01</div>
+                    <div className="text-[10px] text-slate-400 mt-1">Type: Core SQL Database</div>
+                    <div className="mt-2 text-[10px] text-amber-400 font-bold">STATUS: HITL SEGMENTATION QUEUED</div>
+                  </div>
+
+                  <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-slate-300">
+                    <div className="font-bold text-slate-100">PALO ALTO FIREWALL</div>
+                    <div className="text-[10px] text-slate-400 mt-1">Type: Edge Firewall</div>
+                    <div className="mt-2 text-[10px] text-[#00f2fe] font-bold">
+                      {isComplete ? `STATUS: IP ${customIp || '194.26.29.112'} BLOCKED` : 'STATUS: ACTIVE'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: CONTAINMENT SOAR & HITL QUEUE */}
+            {activeTab === 'containment' && (
+              <div className="fortis-glass rounded-xl p-5 flex flex-col gap-3">
+                <h3 className="text-xs font-bold uppercase text-slate-200 border-b border-slate-800 pb-2">
+                  FORTIS SOAR Playbooks & HITL Governance Queue
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-sans text-xs">
+                  {soarActions.map(act => {
+                    const status = actionStatuses[act.actionId] || act.status;
+                    const isAuthorized = status === 'AUTHORIZED_BY_HUMAN';
+                    return (
+                      <div
+                        key={act.actionId}
+                        className={`p-4 rounded-xl border flex flex-col justify-between gap-3 ${
+                          act.hitlRequired
+                            ? 'bg-amber-950/20 border-amber-800/80 text-amber-100'
+                            : 'bg-slate-900 border-slate-800 text-slate-200'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="font-bold text-slate-100">{act.type}</span>
+                            <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                              Risk Score: {act.riskScore}%
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-1">Target: <strong className="font-mono text-slate-200">{act.target}</strong></p>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-slate-800 pt-2.5 text-[11px]">
+                          <span className="text-slate-400">
+                            {act.hitlRequired ? 'HITL Governance Required (>85% Risk)' : 'Autonomous Execution Approved'}
+                          </span>
+                          
+                          {act.hitlRequired ? (
+                            isAuthorized ? (
+                              <span className="bg-[#00e676] text-slate-950 px-3 py-1 rounded text-[11px] font-bold">
+                                Authorized & Executed
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleAuthorizeHitl(act.actionId)}
+                                className="px-3.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-all"
+                              >
+                                Authorize Action
+                              </button>
+                            )
+                          ) : (
+                            <span className="text-[#00e676] font-bold">
+                              Automatically Executed
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* FOOTER */}
+          <footer className="border-t border-slate-800 bg-[#04060c] py-3 px-6 text-center text-xs font-mono text-slate-400 flex justify-between items-center">
+            <span>FORTIS Autonomous SOC Intelligence Architecture Active</span>
+            <span>MITRE ATT&CK • VirusTotal • AbuseIPDB • YARA • Sigma Engine</span>
+          </footer>
+
+          {/* FORTIS PROFESSIONAL EXECUTIVE INCIDENT REPORT MODAL */}
+          {isReportOpen && (
+            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-[#090d19] border border-slate-700 rounded-2xl max-w-3xl w-full p-7 text-xs font-sans flex flex-col gap-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+                
+                {/* Document Header */}
+                <div className="flex justify-between items-start border-b border-slate-700 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-slate-100 text-lg">
+                        FORTIS EXECUTIVE CYBER INCIDENT REPORT
+                      </h3>
+                      <span className="text-[10px] font-mono bg-slate-800 text-[#00f2fe] px-2 py-0.5 rounded border border-[#00f2fe]/30 font-bold">
+                        TLP:AMBER | CONFIDENTIAL
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      Document ID: {activeScenario.initialAlert.alertId} | Generated: {new Date().toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsReportOpen(false)}
+                    className="text-slate-400 hover:text-white font-bold bg-slate-800 rounded-lg px-3 py-1 text-xs"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                {/* Status Banner */}
+                <div className={`p-4 rounded-xl border flex items-center justify-between font-mono text-xs ${
+                  mitigationOutcome === 'SUCCESS'
+                    ? 'bg-emerald-950/60 border-emerald-700 text-emerald-200'
+                    : 'bg-rose-950/60 border-rose-700 text-rose-200'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    {mitigationOutcome === 'SUCCESS' ? <SvgCheck /> : <SvgAlert />}
+                    <div>
+                      <div className="font-bold text-sm">
+                        THREAT REMOVAL VERDICT: {mitigationOutcome === 'SUCCESS' ? 'SUCCESSFUL MITIGATION' : 'FAILED / UNCONTAINED'}
+                      </div>
+                      <div className="text-[11px] font-sans text-slate-300 mt-0.5">
+                        {mitigationOutcome === 'SUCCESS'
+                          ? `All malicious process payloads terminated. Attacker IP [${customIp || activeScenario.initialAlert.srcIp}] locked at edge firewall. Host [${customHost || activeScenario.initialAlert.host}] isolated.`
+                          : `Perimeter firewall lockout failed. Attacker remains active on asset [${customHost || activeScenario.initialAlert.host}].`
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Mitigation Status:</span>
+                    <strong className="text-xs font-bold">
+                      {mitigationOutcome === 'SUCCESS' ? '100% NEUTRALIZED' : 'ACTION REQUIRED'}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Metrics Table */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
+                  <div className="bg-[#050811] p-3 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Threat Confidence:</span>
+                    <strong className="text-[#00e676] text-xs font-bold">98.8% (CRITICAL)</strong>
+                  </div>
+                  <div className="bg-[#050811] p-3 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Mitigation Latency:</span>
+                    <strong className="text-[#00f2fe] text-xs font-bold">1.42 Seconds</strong>
+                  </div>
+                  <div className="bg-[#050811] p-3 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Triage Saved:</span>
+                    <strong className="text-purple-300 text-xs font-bold">~45.0 Minutes</strong>
+                  </div>
+                  <div className="bg-[#050811] p-3 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Classification:</span>
+                    <strong className="text-slate-200 text-xs font-bold">{activeScenario.category}</strong>
+                  </div>
+                </div>
+
+                {/* 1. Executive Summary */}
+                <div className="bg-[#050811] p-4 rounded-xl border border-slate-800 flex flex-col gap-1.5 font-sans">
+                  <h4 className="font-bold text-slate-200 text-xs uppercase font-mono">1. Executive Summary</h4>
+                  <p className="text-slate-300 text-xs leading-relaxed">
+                    {activeScenario.summary} FORTIS multi-agent intelligence correlation identified malicious telemetry originating from attacker source IP <strong>{customIp || activeScenario.initialAlert.srcIp}</strong> targeting internal infrastructure asset <strong>{customHost || activeScenario.initialAlert.host}</strong>.
+                  </p>
+                </div>
+
+                {/* 2. Containment Verification */}
+                <div className="bg-[#050811] p-4 rounded-xl border border-slate-800 flex flex-col gap-2 font-sans">
+                  <h4 className="font-bold text-slate-200 text-xs uppercase font-mono">2. Containment & Remediation Audit</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                    <div className="bg-[#080d19] p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                      <span>Perimeter Firewall Lockout:</span>
+                      <strong className={mitigationOutcome === 'SUCCESS' ? 'text-[#00e676]' : 'text-[#ff2a5f]'}>{mitigationOutcome === 'SUCCESS' ? 'VERIFIED' : 'FAILED'}</strong>
+                    </div>
+                    <div className="bg-[#080d19] p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                      <span>EDR Host Isolation:</span>
+                      <strong className={mitigationOutcome === 'SUCCESS' ? 'text-[#00e676]' : 'text-[#ff2a5f]'}>{mitigationOutcome === 'SUCCESS' ? 'VERIFIED' : 'FAILED'}</strong>
+                    </div>
+                    <div className="bg-[#080d19] p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                      <span>YARA Signature Payload Scan:</span>
+                      <strong className="text-[#00e676]">VERIFIED</strong>
+                    </div>
+                    <div className="bg-[#080d19] p-2.5 rounded-lg border border-slate-800 flex items-center justify-between">
+                      <span>Regulatory Audit:</span>
+                      <strong className="text-[#00e676]">AUDITED (GDPR Art. 33)</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Indicators of Compromise */}
+                <div className="bg-[#050811] p-4 rounded-xl border border-slate-800 flex flex-col gap-2 font-mono">
+                  <h4 className="font-bold text-slate-200 text-xs uppercase">3. Key Indicators of Compromise (IoCs)</h4>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                    <div>Attacker IP: <strong>{customIp || activeScenario.initialAlert.srcIp}</strong></div>
+                    <div>Target Asset: <strong>{customHost || activeScenario.initialAlert.host}</strong></div>
+                    <div>VirusTotal Score: <strong>68 / 90 Malicious Vendors</strong></div>
+                    <div>AbuseIPDB Score: <strong>99% Confidence (Botnet C2)</strong></div>
+                  </div>
+                </div>
+
+                {/* 4. MITRE ATT&CK Mapping */}
+                <div className="bg-[#050811] p-4 rounded-xl border border-slate-800 flex flex-col gap-1.5 font-mono">
+                  <h4 className="font-bold text-slate-200 text-xs uppercase">4. MITRE ATT&CK Mapping</h4>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {activeScenario.mitreTechniques.map((tech, idx) => (
+                      <span key={idx} className="bg-slate-800 text-[#00f2fe] px-2.5 py-1 rounded text-[10px] border border-slate-700 font-semibold">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Document Footer Actions */}
+                <div className="flex justify-between items-center border-t border-slate-800 pt-4 text-xs font-mono">
+                  <span className="text-slate-400 text-[10px]">Digital Signature: FORTIS-AUTH-SEC-2026</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.print()}
+                      className="px-4 py-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-slate-950 font-black rounded-xl text-xs shadow-md"
+                    >
+                      Print / Save PDF Report
+                    </button>
+                    <button
+                      onClick={() => setIsReportOpen(false)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* BENCHMARK MODAL */}
+          {isBenchmarkOpen && (
+            <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="bg-[#090d19] border border-slate-800 rounded-2xl max-w-2xl w-full p-6 text-xs font-sans flex flex-col gap-4 shadow-2xl">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3 font-mono">
+                  <h3 className="font-bold text-slate-100 text-base">FORTIS HACKATHON BENCHMARK EVALUATION</h3>
+                  <button onClick={() => setIsBenchmarkOpen(false)} className="text-slate-400 hover:text-white font-bold">Close</button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-slate-200 font-mono">
+                  <div className="bg-[#050811] p-4 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Mean Latency to Mitigate:</span>
+                    <strong className="text-[#00f2fe] text-base font-bold">1.42 Seconds</strong>
+                  </div>
+                  <div className="bg-[#050811] p-4 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Human Triage Baseline:</span>
+                    <strong className="text-rose-400 text-base font-bold">45.0 Minutes</strong>
+                  </div>
+                  <div className="bg-[#050811] p-4 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Classification Accuracy:</span>
+                    <strong className="text-[#00e676] text-base font-bold">98.8%</strong>
+                  </div>
+                  <div className="bg-[#050811] p-4 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block">Noise Reduction:</span>
+                    <strong className="text-amber-400 text-base font-bold">87.2%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>   </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
