@@ -12,33 +12,26 @@ class RLMemoryEngine:
                 json.dump({"T1078 - Valid Accounts": {"Revoke IAM": 5, "Ignore": -2}}, f)
 
     def get_best_action(self, threat_type: str) -> str:
-        """Returns the highest rewarded action for a given threat state."""
         try:
             with open(self.db_path, "r") as f:
                 data = json.load(f)
-            
-            # Fuzzy match threat type
             for known_threat, actions in data.items():
                 if known_threat.lower() in threat_type.lower() or threat_type.lower() in known_threat.lower():
                     if actions:
                         return max(actions, key=actions.get)
-            return "No historical RL data. Agent must explore new actions."
+            return "No historical RL data. Agent exploring new actions."
         except Exception:
             return "RL memory unreadable."
 
     def update_reward(self, threat_type: str, action: str, reward: int):
-        """Updates the Q-Table with positive or negative reinforcement."""
         try:
             with open(self.db_path, "r") as f:
                 data = json.load(f)
-            
             if threat_type not in data:
                 data[threat_type] = {}
             if action not in data[threat_type]:
                 data[threat_type][action] = 0
-                
             data[threat_type][action] += reward
-            
             with open(self.db_path, "w") as f:
                 json.dump(data, f, indent=4)
         except Exception as e:
