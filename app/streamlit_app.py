@@ -262,7 +262,7 @@ if run_workflow and backend_connected:
 
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
         time.sleep(step_delay)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud(live_incident["cloud_config"])
+        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
 
         ui_comp.markdown(render_agent_card("Compliance", "📋", "running"), unsafe_allow_html=True)
