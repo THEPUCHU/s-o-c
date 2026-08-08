@@ -14,7 +14,6 @@ try:
     backend_connected = True
 except ImportError as e:
     backend_connected = False
-    st.error(f"Backend Connection Error: {e}")
 
 # --- PAGE CONFIGURATION & CSS ---
 st.set_page_config(page_title="Autonomous SOC AI", page_icon="🔥", layout="wide", initial_sidebar_state="expanded")
@@ -132,6 +131,9 @@ if 'final_results' not in st.session_state:
 if 'human_approved' not in st.session_state:
     st.session_state.human_approved = False
 
+if not backend_connected:
+    st.error("⚠️ Backend Connection Error: Unable to import `SOCAgentOrchestrator`.")
+
 # --- HEADER ---
 st.markdown("<h1>🔥 Autonomous SOC AI</h1>", unsafe_allow_html=True)
 st.markdown("<p class='subtitle'>Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization</p>", unsafe_allow_html=True)
@@ -248,14 +250,20 @@ if st.session_state.swarm_ran and backend_connected:
                 c_btn1, c_btn2 = st.columns(2)
                 with c_btn1:
                     if st.button("✅ Approve (+1 Reward)", type="secondary", use_container_width=True):
-                        from agents.rl_engine import RLMemoryEngine
-                        RLMemoryEngine().update_reward(ai_deduced_attack, real_actions[0] if real_actions else "Isolate", 1)
+                        try:
+                            from agents.rl_engine import RLMemoryEngine
+                            RLMemoryEngine().update_reward(ai_deduced_attack, real_actions[0] if real_actions else "Isolate", 1)
+                        except:
+                            pass
                         st.session_state.human_approved = True
                         st.rerun()
                 with c_btn2:
                     if st.button("❌ Reject (-1 Reward)", use_container_width=True):
-                        from agents.rl_engine import RLMemoryEngine
-                        RLMemoryEngine().update_reward(ai_deduced_attack, real_actions[0] if real_actions else "Isolate", -1)
+                        try:
+                            from agents.rl_engine import RLMemoryEngine
+                            RLMemoryEngine().update_reward(ai_deduced_attack, real_actions[0] if real_actions else "Isolate", -1)
+                        except:
+                            pass
                         st.error("Playbook rejected. RL Q-Table penalized.")
                         st.stop()
             else:
@@ -275,7 +283,6 @@ if st.session_state.swarm_ran and backend_connected:
             st.markdown("### 🔮 Predictive Threat Forecasting")
             st.info(f"**AI Swarm Prediction:** {real_predictions[0] if real_predictions else 'Forecasting unavailable.'}")
 
-        # ... (keep col2 the same for the visual map) ...
         with col2:
             st.markdown("### 🕸️ Visual Threat Topography")
             st.markdown(f"""
@@ -287,7 +294,27 @@ if st.session_state.swarm_ran and backend_connected:
             """, unsafe_allow_html=True)
 
         with col3:
-            # --- FINAL FEATURE: ROOT CAUSE ANALYSIS & SOAR PLAYBOOK ---
+            st.markdown("### 🧠 AI Explainability Data")
+            with st.expander("Master Orchestrator Synthesis", expanded=True):
+                st.json({"computed_priority": st.session_state.final_results.get("decision"), "attack_type": ai_deduced_attack})
+                
+            for agent_name, agent_data in st.session_state.final_results.get("specialists", {}).items():
+                if isinstance(agent_data, dict) and agent_name not in ["status"]:
+                    with st.expander(f"{agent_name.replace('_', ' ').title()} Output"):
+                        st.json(agent_data)
+                        
+            # --- EXECUTIVE REPORT DOWNLOAD BUTTON ---
+            st.markdown("### 📑 Executive Reporting")
+            report_payload = json.dumps(st.session_state.final_results, indent=4)
+            st.download_button(
+                label="📄 Download Incident Response Report",
+                data=report_payload,
+                file_name="Executive_IR_Report.json",
+                mime="application/json",
+                use_container_width=True
+            )
+
+        # --- FINAL FEATURE: ROOT CAUSE ANALYSIS & SOAR PLAYBOOK ---
         st.divider()
         st.markdown("## 🔎 Post-Incident Root Cause & Auto-Playbook")
         rca_col, playbook_col = st.columns(2)
@@ -317,14 +344,3 @@ tasks:
 status: ready_for_deployment"""
             
             st.code(soar_yaml, language="yaml")
-                        
-            # --- EXECUTIVE REPORT DOWNLOAD BUTTON ---
-            st.markdown("### 📑 Executive Reporting")
-            report_payload = json.dumps(st.session_state.final_results, indent=4)
-            st.download_button(
-                label="📄 Download Incident Response Report",
-                data=report_payload,
-                file_name="Executive_IR_Report.json",
-                mime="application/json",
-                use_container_width=True
-            )
