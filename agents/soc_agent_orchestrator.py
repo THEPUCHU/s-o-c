@@ -38,22 +38,25 @@ class SOCAgentOrchestrator:
         return SBOMAnalysisAgent().run(dependencies)
 
     def _trigger_soar_webhook(self, threat_type: str, action: str):
-        """Fires a live alert to a Discord/Slack webhook with push notification tags."""
-        webhook_url = st.secrets.get("SOAR_WEBHOOK_URL", "")
-        if not webhook_url:
-            return "Webhook URL not configured in secrets."
-            
-        # @everyone forces Discord to dispatch an immediate push notification to mobile
-        payload = {
-            "content": f"🚨 @everyone **CRITICAL SOC ESCALATION** 🚨\n**Threat:** {threat_type}\n**Recommended Action:** {action}\n**Status:** Awaiting Incident Commander Override.",
-            "text": f"🚨 @everyone *CRITICAL SOC ESCALATION* 🚨\n*Threat:* {threat_type}\n*Recommended Action:* {action}\n*Status:* Awaiting Incident Commander Override."
+        """Fires a live push notification to your phone using ntfy.sh (No auth required)"""
+        
+        # 🛑 REPLACE THIS WITH YOUR UNIQUE TOPIC NAME FROM THE NTFY APP 🛑
+        topic = "soc_alerts_hackathon_99" 
+        
+        url = f"https://ntfy.sh/{topic}"
+        message = f"CRITICAL SOC ESCALATION\nThreat: {threat_type}\nAction: {action}"
+        
+        headers = {
+            "Title": "🚨 SOC Swarm Alert",
+            "Priority": "urgent",
+            "Tags": "rotating_light,skull"
         }
         
         try:
-            res = requests.post(webhook_url, json=payload, timeout=5)
-            return f"Alert dispatched successfully ({res.status_code})."
+            requests.post(url, data=message, headers=headers, timeout=5)
+            return "Push notification sent to phone!"
         except Exception as e:
-            return f"Failed to dispatch alert: {e}"
+            return f"Failed to send alert: {e}"
 
     def _compute_master_consensus(self, specialists_data: dict) -> dict:
         """Uses Groq to act as the Master Brain, reading all agent outputs to make a final decision."""
@@ -71,6 +74,7 @@ class SOCAgentOrchestrator:
             
             return json.loads(response.content.strip().strip('```json').strip('```'))
         except Exception:
+            # Fallback if API rate limits hit
             return {"decision": "critical_containment", "recommended_next_step": "execute_standard_playbook"}
 
     def run_incident(self, incident: Dict[str, Any]) -> Dict[str, Any]:
@@ -123,11 +127,8 @@ class SOCAgentOrchestrator:
         results["decision"] = consensus.get("decision", "critical_containment")
         results["recommended_next_step"] = consensus.get("recommended_next_step", "isolate")
 
-        # 4. Fire SOAR alert webhook for all runs
-        self._trigger_soar_webhook(attack_type, results["recommended_next_step"])
+        # 4. Trigger Mobile Alert if catastrophic
+        if "NATION-STATE" in attack_type.upper() or "CRITICAL" in results["decision"].upper():
+            self._trigger_soar_webhook(attack_type, results["recommended_next_step"])
 
         return results
-            user_msg = HumanMessage(content=f"Synthesize these agent reports: {json.dumps(specialists_data)}")
-            response = llm.invoke([sys_msg, user_msg])
-            
-            return json.loads(response.content.strip().strip('```json').strip('
