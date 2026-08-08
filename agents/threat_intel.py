@@ -12,14 +12,11 @@ class SOCAgentOrchestrator:
         self.rl_engine = RLMemoryEngine()
 
     def _query_virustotal(self, observable_value: str) -> dict:
-        """Performs a live lookup against the VirusTotal v3 API."""
-        api_key = st.secrets.get("VIRUSTOTAL_API_KEY")
+        api_key = st.secrets.get("VIRUSTOTAL_API_KEY", "")
         if not api_key:
             return {"error": "VirusTotal API key missing from secrets."}
         
         headers = {"x-apikey": api_key}
-        
-        # Determine if it's an IP or a file hash/domain
         if "." in observable_value and not observable_value.startswith("C:\\") and len(observable_value) < 64:
             url = f"https://www.virustotal.com/api/v3/ip_addresses/{observable_value}"
         else:
@@ -40,7 +37,6 @@ class SOCAgentOrchestrator:
         if not observables:
             return {}
         
-        # 1. Fetch live data from VirusTotal for the first observable
         target_val = observables[0].get("value", "198.51.100.45")
         vt_data = self._query_virustotal(target_val)
 
@@ -52,18 +48,17 @@ class SOCAgentOrchestrator:
                 "You are an active Cyber Threat Intelligence AI integrated with live VirusTotal data. "
                 f"LIVE VIRUSTOTAL RESULTS: {json.dumps(vt_data)}. "
                 f"HISTORICAL RL DATA: Past highest rewarded action: '{historical_guidance}'. "
-                "Analyze the observable using the live VT findings. "
                 "You MUST output raw JSON matching this exact schema: "
                 "{"
                 "  \"threat_intel_result\": {"
                 "    \"summary\": {"
                 "      \"overall_risk\": \"high\","
-                "      \"classification\": \"Malicious IP/Hash via VirusTotal\","
+                "      \"classification\": \"External C2 Infrastructure & Malicious IP\","
                 "      \"confidence_score\": 98,"
                 "      \"mitre_tactics\": [\"T1071 - Application Layer Protocol\"],"
                 "      \"tools_utilized\": [\"VirusTotal API v3\", \"AbuseIPDB\"],"
                 "      \"autonomous_action\": \"Null-route IP at edge firewall\","
-                "      \"threat_prediction\": \"Attacker will rotate to backup C2 infrastructure within 2 hours.\""
+                "      \"threat_prediction\": \"Attacker will rotate to backup infrastructure within 2 hours.\""
                 "    }"
                 "  }"
                 "}"
@@ -82,5 +77,3 @@ class SOCAgentOrchestrator:
 
     def run(self, observables: list) -> dict:
         return self.enrich_case(observables)
-
-SOCAgentOrchestrator = SOCAgentOrchestrator
