@@ -1,10 +1,9 @@
 import json
-import requests
-import streamlit as st
 from pathlib import Path
 from typing import Dict, Any
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
+import streamlit as st
 
 from agents.threat_intel import SOCAgentOrchestrator as ThreatIntelAgent
 from agents.log_analysis import SOCLogWorkflow
@@ -13,6 +12,7 @@ from agents.cloud_security import CloudSecurityAgent
 from agents.compliance import ComplianceAgent
 from agents.sbom_agent import SBOMAnalysisAgent
 from agents.deception_agent import DeceptionAgent
+from agents.alert_agent import AlertAgent  # <-- IMPORTING THE NEW AGENT
 
 class SOCAgentOrchestrator:
     def __init__(self, case_id="UNKNOWN", analyst="System"):
@@ -40,37 +40,6 @@ class SOCAgentOrchestrator:
 
     def _run_deception(self, threat_context: dict) -> dict:
         return DeceptionAgent().run(threat_context)
-
-    def _trigger_soar_webhook(self, threat_type: str, action: str):
-        """Fires a live push notification to your phone using ntfy.sh"""
-        
-        # 🛑 ENSURE THIS IS YOUR EXACT NTFY TOPIC 🛑
-        topic = "soc_alerts_hackathon_99" 
-        
-        url = f"https://ntfy.sh/{topic}"
-        message = f"🚨 CRITICAL SOC ESCALATION\nThreat: {threat_type}\nAction: {action}"
-        
-        headers = {
-            "Title": "🚨 SOC AI Swarm Alert",
-            "Priority": "urgent",
-            "Tags": "rotating_light,skull"
-        }
-        
-        try:
-            # We are using st.toast to force it to show up on the screen!
-            res = requests.post(url, data=message, headers=headers, timeout=5)
-            if res.status_code == 200:
-                print("✅ [AI] Push notification sent!")
-                if hasattr(st, "toast"):
-                    st.toast("📱 AI successfully pinged your phone!", icon="🚨")
-            else:
-                print(f"❌ [AI] Failed: {res.status_code}")
-                if hasattr(st, "toast"):
-                    st.toast(f"⚠️ AI failed to ping phone: HTTP {res.status_code}", icon="⚠️")
-        except Exception as e:
-            print(f"❌ [AI] Exception: {e}")
-            if hasattr(st, "toast"):
-                st.toast(f"⚠️ AI Python Error: {e}", icon="⚠️")
 
     def _compute_master_consensus(self, specialists_data: dict) -> dict:
         """Uses Groq to act as the Master Brain, synthesizing all 7 agent outputs to form a final verdict."""
@@ -119,7 +88,7 @@ class SOCAgentOrchestrator:
         if incident.get("dependencies"):
             results["specialists"]["sbom_analysis"] = self._run_sbom(incident["dependencies"])
             
-        # Run Active Defense & Deception Agent using current context
+        # Run Active Defense & Deception Agent
         results["specialists"]["active_defense"] = self._run_deception({
             "logs": incident.get("logs", []),
             "file": incident.get("file_path", ""),
@@ -164,7 +133,8 @@ class SOCAgentOrchestrator:
         results["decision"] = consensus.get("decision", "critical_containment")
         results["recommended_next_step"] = consensus.get("recommended_next_step", "isolate")
 
-        # 4. 🔥 FORCE THE AI TO TRIGGER THE ALERT EVERY TIME 🔥
-        self._trigger_soar_webhook(attack_type, results["recommended_next_step"])
+        # 4. 🔥 Trigger the new dedicated Alert Agent 🔥
+        alerter = AlertAgent(topic="soc_alerts_hackathon_99") # Change topic here if needed
+        alerter.send_alert(attack_type, results["recommended_next_step"])
 
         return results
