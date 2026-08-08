@@ -16,23 +16,15 @@ except ImportError as e:
     st.error(f"Backend Connection Error: {e}")
 
 # --- PAGE CONFIGURATION & CSS ---
-
 st.set_page_config(page_title="Autonomous SOC AI", page_icon="🔥", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
     .stApp { background-color: #050505; color: #eaeaea; }
     [data-testid="stSidebar"] { background-color: #0d0d0d; border-right: 2px solid #ff6600; }
-    
-    /* Center Headings & Remove Lines */
-    h1 { color: #ff8c00 !important; font-weight: 600; text-align: center; }
-    p.subtitle { text-align: center; color: #888; font-size: 16px; margin-top: -10px; margin-bottom: 30px; }
-    h2, h3, h4 { color: #ff8c00 !important; font-weight: 600; }
-    
-    /* Remove default streamlit horizontal rules if desired */
-    hr { display: none !important; }
-    
-    div.stButton > button[kind="primary"] { background-color: #ff6600 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #ff6600 !important; }
+    h1, h2, h3, h4 { color: #ff8c00 !important; font-weight: 600; }
+    hr { border-top: 2px solid #ff6600 !important; opacity: 0.3; }
+    div.stButton > button[kind="primary"] { background-color: #ff6600 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #ff8c00 !important; }
     
     /* Terminal Log */
     .action-log { 
@@ -51,9 +43,27 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER ---
+def render_agent_card(agent_name, icon, state, is_master=False):
+    if state == "idle":
+        border, bg, text, status = "#333333", "#111111", "#555555", "💤 Standby"
+    elif state == "running":
+        border, bg, text, status = "#ff6600", "#331a00", "#ff8c00", "⚡ Processing..."
+    elif state == "routing":
+        border, bg, text, status = "#3b82f6", "#172554", "#60a5fa", "📡 Routing Tasks..."
+    elif state == "consensus":
+        border, bg, text, status = "#a855f7", "#3b0764", "#c084fc", "⚖️ Computing Consensus..."
+    else: 
+        border, bg, text, status = "#10b981", "#022c22", "#34d399", "✅ Deployed"
 
-st.markdown("<p class='subtitle'>Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization</p>", unsafe_allow_html=True)
+    box_shadow = f"box-shadow: 0 0 15px {border}40;" if is_master else ""
+
+    return f"""
+    <div style="border: 2px solid {border}; background-color: {bg}; padding: 15px; border-radius: 8px; text-align: center; transition: all 0.2s ease; {box_shadow}">
+        <div style="font-size: 28px; margin-bottom: 10px;">{icon}</div>
+        <h4 style="color: {text}; margin: 0; font-size: 15px;">{agent_name}</h4>
+        <div style="color: {text}; font-size: 12px; margin-top: 5px;">{status}</div>
+    </div>
+    """
 
 # --- THREAT SCENARIOS DICTIONARY ---
 scenarios = {
@@ -182,7 +192,7 @@ if run_workflow and backend_connected:
         ui_malware.markdown(render_agent_card("Malware AI", "🦠", "done"), unsafe_allow_html=True)
         
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
+        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud(live_incident["cloud_config"])
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
         
         ui_comp.markdown(render_agent_card("Compliance", "📋", "running"), unsafe_allow_html=True)
