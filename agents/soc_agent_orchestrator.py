@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 from typing import Dict, Any
+import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
-import streamlit as st
 
 from agents.threat_intel import SOCAgentOrchestrator as ThreatIntelAgent
 from agents.log_analysis import SOCLogWorkflow
@@ -12,7 +12,6 @@ from agents.cloud_security import CloudSecurityAgent
 from agents.compliance import ComplianceAgent
 from agents.sbom_agent import SBOMAnalysisAgent
 from agents.deception_agent import DeceptionAgent
-from agents.alert_agent import AlertAgent  # <-- IMPORTING THE NEW AGENT
 
 class SOCAgentOrchestrator:
     def __init__(self, case_id="UNKNOWN", analyst="System"):
@@ -57,6 +56,7 @@ class SOCAgentOrchestrator:
             
             return json.loads(response.content.strip().strip('```json').strip('```'))
         except Exception:
+            # Fallback if API rate limits hit
             return {"decision": "critical_containment", "recommended_next_step": "execute_standard_playbook"}
 
     def run_incident(self, incident: Dict[str, Any]) -> Dict[str, Any]:
@@ -88,7 +88,7 @@ class SOCAgentOrchestrator:
         if incident.get("dependencies"):
             results["specialists"]["sbom_analysis"] = self._run_sbom(incident["dependencies"])
             
-        # Run Active Defense & Deception Agent
+        # Run Active Defense & Deception Agent using current context
         results["specialists"]["active_defense"] = self._run_deception({
             "logs": incident.get("logs", []),
             "file": incident.get("file_path", ""),
@@ -133,8 +133,7 @@ class SOCAgentOrchestrator:
         results["decision"] = consensus.get("decision", "critical_containment")
         results["recommended_next_step"] = consensus.get("recommended_next_step", "isolate")
 
-        # 4. 🔥 Trigger the new dedicated Alert Agent 🔥
-        alerter = AlertAgent(topic="soc_alerts_hackathon_99") # Change topic here if needed
-        alerter.send_alert(attack_type, results["recommended_next_step"])
+        # 🚨 Note: The Alert trigger has been completely removed from here!
+        # It is now safely handled by streamlit_app.py directly on the frontend thread.
 
         return results
