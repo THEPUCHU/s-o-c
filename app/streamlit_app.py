@@ -1,7 +1,6 @@
 import streamlit as st
 import sys
 import json
-import pandas as pd
 from pathlib import Path
 
 # --- BULLETPROOF PATH ROUTING ---
@@ -41,9 +40,6 @@ st.markdown("""
         text-align: center; margin-bottom: 10px; box-shadow: 0 0 10px rgba(255, 102, 0, 0.2);
     }
     .arrow { text-align: center; color: #ff6600; font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-    
-    /* Tables */
-    .stDataFrame { border: 1px solid #333333; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -97,20 +93,29 @@ ui_comp.markdown(render_agent_card("Compliance", "📋", "idle"), unsafe_allow_h
 
 st.divider()
 
-# --- PRE-RUN DASHBOARD (EMPTY STATE) ---
+# --- PRE-RUN DASHBOARD (READINESS STATE) ---
 if not run_workflow:
-    st.subheader("📥 Global Threat Ingestion Feed")
+    st.subheader("🛡️ Environment Readiness Overview")
     
-    # Generate a rich-looking pending alert queue
-    mock_feed = pd.DataFrame({
-        "Severity": ["🔴 Critical", "🟠 High", "🟡 Medium", "🟡 Medium"],
-        "Source": ["AWS GuardDuty", "CrowdStrike", "Okta IAM", "Palo Alto FW"],
-        "Detected Event": ["Root Account Login & S3 Exposure", "svchost_sus.exe Executed", f"Failed MFA from {target_ip}", "Port Scan Detected"],
-        "Status": ["Awaiting Swarm", "Awaiting Swarm", "Awaiting Swarm", "Queued"]
+    # Show live-looking environment metrics
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric(label="Monitored Endpoints", value="12,402", delta="Online")
+    m2.metric(label="Cloud Assets", value="843", delta="AWS & GCP")
+    m3.metric(label="Active Policies", value="142", delta="NIST-800-53")
+    m4.metric(label="Swarm Latency", value="12ms", delta="Optimal", delta_color="normal")
+    
+    st.divider()
+    
+    st.subheader("📥 Pending Injection Payload")
+    st.info("The AI Swarm is awaiting execution. The following telemetry data will be ingested upon deployment.")
+    
+    # Preview the exact JSON that will be sent to the swarm
+    st.json({
+        "target_ip": target_ip,
+        "suspicious_file": "C:\\Windows\\Temp\\svchost_sus.exe",
+        "cloud_environment": "AWS (Root IAM Check Required)",
+        "correlated_logs": f"LoginFailed src={target_ip} followed by PowerShell execution"
     })
-    
-    st.dataframe(mock_feed, use_container_width=True, hide_index=True)
-    st.info(f"System is monitoring the environment. Ready to deploy autonomous swarm against IP: {target_ip}.")
 
 # --- POST-RUN DASHBOARD (ACTIVE EXECUTION) ---
 if run_workflow and backend_connected:
@@ -144,7 +149,7 @@ if run_workflow and backend_connected:
         
         # 4. Cloud Security
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud(live_incident["cloud_config"])
+        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
         
         # 5. Compliance
