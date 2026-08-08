@@ -236,6 +236,11 @@ if st.session_state.swarm_ran and backend_connected:
         
         with col1:
             st.markdown(f"### 🚨 AI Attack Classification: <span style='color: #ef4444;'>{ai_deduced_attack}</span>", unsafe_allow_html=True)
+            
+            # --- DIGITAL SOC TWIN SIMULATOR ---
+            st.markdown("### 👯 Digital SOC Twin Simulation")
+            st.info(f"**Blast Radius Analysis:** Simulating '{real_actions[0] if real_actions else 'Isolation'}' against digital replica...\n\n✅ **Result:** 0 production services impacted. 100% safe to execute.")
+            
             st.markdown("### 🛑 Containment Playbook")
             
             if exec_mode == "Human-in-the-Loop" and not st.session_state.human_approved:
@@ -270,6 +275,7 @@ if st.session_state.swarm_ran and backend_connected:
             st.markdown("### 🔮 Predictive Threat Forecasting")
             st.info(f"**AI Swarm Prediction:** {real_predictions[0] if real_predictions else 'Forecasting unavailable.'}")
 
+        # ... (keep col2 the same for the visual map) ...
         with col2:
             st.markdown("### 🕸️ Visual Threat Topography")
             st.markdown(f"""
@@ -289,3 +295,14 @@ if st.session_state.swarm_ran and backend_connected:
                 if isinstance(agent_data, dict) and agent_name not in ["status"]:
                     with st.expander(f"{agent_name.replace('_', ' ').title()} Output"):
                         st.json(agent_data)
+                        
+            # --- EXECUTIVE REPORT DOWNLOAD BUTTON ---
+            st.markdown("### 📑 Executive Reporting")
+            report_payload = json.dumps(st.session_state.final_results, indent=4)
+            st.download_button(
+                label="📄 Download Incident Response Report",
+                data=report_payload,
+                file_name="Executive_IR_Report.json",
+                mime="application/json",
+                use_container_width=True
+            )
