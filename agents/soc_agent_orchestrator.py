@@ -12,28 +12,27 @@ def run_incident(self, incident: Dict[str, Any]) -> Dict[str, Any]:
         if incident.get("logs"):
             results["specialists"]["log_analysis"] = self._run_log_analysis(incident["logs"])
 
-        # EXTRACT REAL DYNAMIC DATA FROM LLMS
-        mitre_set, tool_set, actions_list = set(), set(), []
+       # EXTRACT REAL DYNAMIC DATA FROM LLMS
+        mitre_set, tool_set, actions_list, predictions = set(), set(), [], []
         
         for agent_name, data in results["specialists"].items():
-            # Deep search the JSON for our required keys
             data_str = json.dumps(data)
-            if "mitre_tactics" in data_str:
-                # Basic extraction for hackathon speed
-                for key in ["threat_intel_result", "log_analysis_result"]:
-                    if data and key in data:
-                        summary = data[key].get("summary", {})
-                        mitre_set.update(summary.get("mitre_tactics", []))
-                        tool_set.update(summary.get("tools_utilized", []))
-                        if summary.get("autonomous_action"):
-                            actions_list.append(summary["autonomous_action"])
+            for key in ["threat_intel_result", "log_analysis_result", "malware_analysis", "cloud_security_result", "compliance_result"]:
+                if data and key in data:
+                    summary = data[key].get("summary", {})
+                    mitre_set.update(summary.get("mitre_tactics", []))
+                    tool_set.update(summary.get("tools_utilized", []))
+                    if summary.get("autonomous_action"):
+                        actions_list.append(summary["autonomous_action"])
+                    if summary.get("threat_prediction"):
+                        predictions.append(summary["threat_prediction"])
 
-        results["aggregated_data"]["mitre"] = list(mitre_set)
-        results["aggregated_data"]["tools"] = list(tool_set)
-        results["aggregated_data"]["actions"] = actions_list
-        
-        results["decision"] = self._decide_priority(results["specialists"])
-        results["recommended_next_step"] = self._next_step(results["decision"])
+        results["aggregated_data"] = {
+            "mitre": list(mitre_set),
+            "tools": list(tool_set),
+            "actions": actions_list,
+            "predictions": predictions
+        }
 
         # REAL SHARED MEMORY (Writes to disk)
         try:
