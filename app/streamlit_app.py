@@ -163,25 +163,6 @@ with st.sidebar:
     exec_mode = st.radio("Execution Mode:", ["Fully Autonomous", "Human-in-the-Loop"])
     st.divider()
 
-    # --- WEBHOOK DIAGNOSTIC TEST ---
-    if st.button("🔔 TEST MOBILE ALERT", type="secondary"):
-        import requests
-        try:
-            # Test ntfy.sh
-            topic = "soc_alerts_hackathon_99" # Change to your exact topic
-            res = requests.post(
-                f"https://ntfy.sh/{topic}", 
-                data="🚨 STREAMLIT UI TEST: Webhooks are working!", 
-                headers={"Title": "UI Diagnostic", "Priority": "urgent"},
-                timeout=5
-            )
-            if res.status_code == 200:
-                st.success("✅ ntfy.sh alert sent successfully!")
-            else:
-                st.error(f"❌ ntfy.sh failed: HTTP {res.status_code} - {res.text}")
-                
-        except Exception as e:
-            st.error(f"🚨 Python Exception: {e}")
     scenario_list = list(scenarios.keys())
     default_idx = scenario_list.index("Catastrophic Nation-State APT") if st.session_state.forced_catastrophic else 0
     selected_scenario = st.selectbox("Select Threat Scenario:", scenario_list, index=default_idx)
