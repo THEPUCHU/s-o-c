@@ -5,8 +5,10 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from agents.rl_engine import RLMemoryEngine
 
 class ComplianceAgent:
-    def __init__(self, case_id="UNKNOWN", analyst="System"):
-        self.case_id = case_id
+    def __init__(self, **kwargs):
+        self.case_id = kwargs.get("case_id", "UNKNOWN")
+        self.analyst = kwargs.get("analyst", "System")
+        self.framework = kwargs.get("framework", "NIST")
         self.rl_engine = RLMemoryEngine()
 
     def assess_compliance(self, controls: dict) -> dict:
@@ -42,12 +44,10 @@ class ComplianceAgent:
         except Exception as e:
             return {"error": str(e)}
 
-    # Aliases for method names
     def _run_compliance(self, controls: dict) -> dict:
         return self.assess_compliance(controls)
 
     def run(self, controls: dict) -> dict:
         return self.assess_compliance(controls)
 
-# Class Alias so both class names work seamlessly
 SOCAgentOrchestrator = ComplianceAgent
