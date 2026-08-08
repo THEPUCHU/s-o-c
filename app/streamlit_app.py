@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import time
+import random
 from pathlib import Path
 
 # --- BULLETPROOF PATH ROUTING ---
@@ -139,12 +140,20 @@ scenarios = {
 }
 
 # --- DIFFICULTY SETTINGS (controls agent animation pacing) ---
+# Each agent's "thinking time" is randomized within this range (seconds),
+# and the order in which specialist agents finish is shuffled each run.
 difficulty_settings = {
-    "Easy":      {"delay": 0.15, "desc": "Fast pass — agents react almost instantly."},
-    "Medium":    {"delay": 0.45, "desc": "Standard pace — realistic analysis time."},
-    "Hard":      {"delay": 0.9,  "desc": "Deliberate — agents take longer to correlate signals."},
-    "Nightmare": {"delay": 1.6,  "desc": "Slow burn — every stage lingers under pressure."},
+    "Easy":      {"range": (0.05, 0.25), "desc": "Fast pass — agents react almost instantly."},
+    "Medium":    {"range": (0.20, 0.65), "desc": "Standard pace — realistic analysis time."},
+    "Hard":      {"range": (0.50, 1.30), "desc": "Deliberate — agents take longer to correlate signals."},
+    "Nightmare": {"range": (1.00, 2.40), "desc": "Slow burn — every stage lingers under pressure."},
 }
+
+def fmt_duration(seconds):
+    """Format a duration in ms if under a second, otherwise in seconds."""
+    if seconds < 1:
+        return f"{seconds * 1000:.0f} ms"
+    return f"{seconds:.2f} s"
 
 # --- HEADER (centered logo) ---
 st.markdown("""
@@ -172,7 +181,7 @@ with st.sidebar:
         value="Medium"
     )
     st.caption(difficulty_settings[selected_difficulty]["desc"])
-    step_delay = difficulty_settings[selected_difficulty]["delay"]
+    delay_min, delay_max = difficulty_settings[selected_difficulty]["range"]
 
     st.divider()
     run_workflow = st.button("▶ Execute Agentic Response", type="primary", use_container_width=True)
@@ -237,50 +246,89 @@ if run_workflow and backend_connected:
 
     orchestrator = SOCAgentOrchestrator(case_id="SOC-LIVE", analyst="Autonomous Swarm")
     final_results = {"specialists": {}}
+    agent_durations = {}
+
+    op_start = time.time()
+
+    # Specialist agent pool — order randomized each run so agents finish in a
+    # different sequence every time, and each gets its own random "think time".
+    agent_pool = [
+        {
+            "key": "threat_intelligence",
+            "name": "Threat Intel",
+            "icon": "🌐",
+            "ui": ui_intel,
+            "run": lambda: orchestrator._run_threat_intel(live_incident["observables"]),
+        },
+        {
+            "key": "log_analysis",
+            "name": "Log Analysis",
+            "icon": "📜",
+            "ui": ui_log,
+            "run": lambda: orchestrator._run_log_analysis(live_incident["logs"]),
+        },
+        {
+            "key": "malware_analysis",
+            "name": "Malware AI",
+            "icon": "🦠",
+            "ui": ui_malware,
+            "run": lambda: orchestrator._run_malware(live_incident["file_path"]),
+        },
+        {
+            "key": "cloud_security",
+            "name": "Cloud Sec",
+            "icon": "☁️",
+            "ui": ui_cloud,
+            "run": lambda: orchestrator._run_cloud_security(live_incident["cloud_config"]),
+        },
+        {
+            "key": "compliance_analysis",
+            "name": "Compliance",
+            "icon": "📋",
+            "ui": ui_comp,
+            "run": lambda: orchestrator._run_compliance(live_incident["controls"]),
+        },
+    ]
+    random.shuffle(agent_pool)
 
     with st.spinner("Master Orchestrator has taken control..."):
 
         # Step 1: Orchestrator Ingests & Routes
         ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "routing", is_master=True), unsafe_allow_html=True)
-        time.sleep(step_delay)
+        time.sleep(random.uniform(delay_min, delay_max))
 
-        # Step 2: Agents execute
-        ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "running"), unsafe_allow_html=True)
-        time.sleep(step_delay)
-        final_results["specialists"]["threat_intelligence"] = orchestrator._run_threat_intel(live_incident["observables"])
-        ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "done"), unsafe_allow_html=True)
-
-        ui_log.markdown(render_agent_card("Log Analysis", "📜", "running"), unsafe_allow_html=True)
-        time.sleep(step_delay)
-        final_results["specialists"]["log_analysis"] = orchestrator._run_log_analysis(live_incident["logs"])
-        ui_log.markdown(render_agent_card("Log Analysis", "📜", "done"), unsafe_allow_html=True)
-
-        ui_malware.markdown(render_agent_card("Malware AI", "🦠", "running"), unsafe_allow_html=True)
-        time.sleep(step_delay)
-        final_results["specialists"]["malware_analysis"] = orchestrator._run_malware(live_incident["file_path"])
-        ui_malware.markdown(render_agent_card("Malware AI", "🦠", "done"), unsafe_allow_html=True)
-
-        ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
-        time.sleep(step_delay)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
-        ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
-
-        ui_comp.markdown(render_agent_card("Compliance", "📋", "running"), unsafe_allow_html=True)
-        time.sleep(step_delay)
-        final_results["specialists"]["compliance_analysis"] = orchestrator._run_compliance(live_incident["controls"])
-        ui_comp.markdown(render_agent_card("Compliance", "📋", "done"), unsafe_allow_html=True)
+        # Step 2: Agents execute in randomized order, each with its own random delay
+        for agent in agent_pool:
+            agent["ui"].markdown(render_agent_card(agent["name"], agent["icon"], "running"), unsafe_allow_html=True)
+            agent_start = time.time()
+            time.sleep(random.uniform(delay_min, delay_max))
+            final_results["specialists"][agent["key"]] = agent["run"]()
+            agent_durations[agent["key"]] = time.time() - agent_start
+            agent["ui"].markdown(render_agent_card(agent["name"], agent["icon"], "done"), unsafe_allow_html=True)
 
         # Step 3: Orchestrator re-takes control to decide final action
         ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "consensus", is_master=True), unsafe_allow_html=True)
-        time.sleep(step_delay)
+        time.sleep(random.uniform(delay_min, delay_max))
         final_results["decision"] = orchestrator._decide_priority(final_results["specialists"])
         final_results["recommended_next_step"] = orchestrator._next_step(final_results["decision"])
 
         # Final Orchestrator completion
         ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "done", is_master=True), unsafe_allow_html=True)
-        time.sleep(step_delay)
+        time.sleep(random.uniform(delay_min, delay_max))
 
-    st.success(f"✅ {selected_scenario} Neutralized Autonomously by Orchestrator ({selected_difficulty} difficulty)")
+    total_elapsed = time.time() - op_start
+    finish_order = " → ".join(agent["name"] for agent in agent_pool)
+
+    st.success(f"✅ {selected_scenario} Neutralized Autonomously by Orchestrator ({selected_difficulty} difficulty) — completed in {fmt_duration(total_elapsed)}")
+    st.caption(f"🔀 Agent completion order this run: {finish_order}")
+
+    t1, t2, t3 = st.columns(3)
+    t1.metric(label="⏱️ Total Response Time", value=fmt_duration(total_elapsed))
+    t2.metric(label="🐢 Slowest Agent", value=max(agent_durations, key=agent_durations.get).replace("_", " ").title(),
+              delta=fmt_duration(max(agent_durations.values())))
+    t3.metric(label="⚡ Fastest Agent", value=min(agent_durations, key=agent_durations.get).replace("_", " ").title(),
+              delta=fmt_duration(min(agent_durations.values())))
+
     st.divider()
 
     col1, col2, col3 = st.columns([1.2, 1, 1.2])
@@ -322,10 +370,13 @@ if run_workflow and backend_connected:
                 "computed_priority": final_results["decision"],
                 "executed_action": action_decision,
                 "agents_utilized": 5,
-                "difficulty": selected_difficulty
+                "difficulty": selected_difficulty,
+                "total_response_time": fmt_duration(total_elapsed),
+                "agent_finish_order": [agent["name"] for agent in agent_pool]
             })
 
         for agent_name, agent_data in final_results.get("specialists", {}).items():
             if isinstance(agent_data, dict) and agent_name != "status":
-                with st.expander(f"{agent_name.replace('_', ' ').title()} Output"):
+                duration_label = fmt_duration(agent_durations.get(agent_name, 0))
+                with st.expander(f"{agent_name.replace('_', ' ').title()} Output — {duration_label}"):
                     st.json(agent_data)
