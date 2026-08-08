@@ -43,16 +43,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def render_agent_card(agent_name, icon, state):
+def render_agent_card(agent_name, icon, state, is_master=False):
     if state == "idle":
         border, bg, text, status = "#333333", "#111111", "#555555", "💤 Standby"
     elif state == "running":
         border, bg, text, status = "#ff6600", "#331a00", "#ff8c00", "⚡ Processing..."
+    elif state == "routing":
+        border, bg, text, status = "#3b82f6", "#172554", "#60a5fa", "📡 Routing Tasks..."
+    elif state == "consensus":
+        border, bg, text, status = "#a855f7", "#3b0764", "#c084fc", "⚖️ Computing Consensus..."
     else: 
         border, bg, text, status = "#10b981", "#022c22", "#34d399", "✅ Deployed"
 
+    box_shadow = f"box-shadow: 0 0 15px {border}40;" if is_master else ""
+
     return f"""
-    <div style="border: 2px solid {border}; background-color: {bg}; padding: 15px; border-radius: 8px; text-align: center; transition: all 0.2s ease;">
+    <div style="border: 2px solid {border}; background-color: {bg}; padding: 15px; border-radius: 8px; text-align: center; transition: all 0.2s ease; {box_shadow}">
         <div style="font-size: 28px; margin-bottom: 10px;">{icon}</div>
         <h4 style="color: {text}; margin: 0; font-size: 15px;">{agent_name}</h4>
         <div style="color: {text}; font-size: 12px; margin-top: 5px;">{status}</div>
@@ -109,6 +115,14 @@ with st.sidebar:
 # --- NEURAL SWARM TRACKER ---
 st.subheader("🤖 Neural Swarm Activity Tracker")
 
+# 1. Top Tier: The Orchestrator
+col_spacer1, col_orch, col_spacer2 = st.columns([1.5, 2, 1.5])
+ui_orchestrator = col_orch.empty()
+ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "idle", is_master=True), unsafe_allow_html=True)
+
+st.markdown("<div style='text-align: center; color: #555; font-size: 24px; margin-bottom: -10px;'>⬇</div>", unsafe_allow_html=True)
+
+# 2. Bottom Tier: The Specialist Agents
 c1, c2, c3, c4, c5 = st.columns(5)
 ui_malware = c1.empty()
 ui_intel = c2.empty()
@@ -137,7 +151,7 @@ if not run_workflow:
     st.divider()
     
     st.subheader("📥 Pending Injection Payload")
-    st.info(f"Targeting: {selected_scenario}. The following telemetry will be ingested upon deployment.")
+    st.info(f"Targeting: {selected_scenario}. The Orchestrator will ingest this data upon deployment.")
     
     st.json({
         "target_ip": s_data["ip"],
@@ -159,8 +173,12 @@ if run_workflow and backend_connected:
     orchestrator = SOCAgentOrchestrator(case_id="SOC-LIVE", analyst="Autonomous Swarm")
     final_results = {"specialists": {}}
 
-    with st.spinner("AI Swarm is actively engaged..."):
+    with st.spinner("Master Orchestrator has taken control..."):
         
+        # Step 1: Orchestrator Ingests & Routes
+        ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "routing", is_master=True), unsafe_allow_html=True)
+        
+        # Step 2: Agents execute
         ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "running"), unsafe_allow_html=True)
         final_results["specialists"]["threat_intelligence"] = orchestrator._run_threat_intel(live_incident["observables"])
         ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "done"), unsafe_allow_html=True)
@@ -174,31 +192,38 @@ if run_workflow and backend_connected:
         ui_malware.markdown(render_agent_card("Malware AI", "🦠", "done"), unsafe_allow_html=True)
         
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
+        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud(live_incident["cloud_config"])
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
         
         ui_comp.markdown(render_agent_card("Compliance", "📋", "running"), unsafe_allow_html=True)
         final_results["specialists"]["compliance_analysis"] = orchestrator._run_compliance(live_incident["controls"])
         ui_comp.markdown(render_agent_card("Compliance", "📋", "done"), unsafe_allow_html=True)
 
+        # Step 3: Orchestrator re-takes control to decide final action
+        ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "consensus", is_master=True), unsafe_allow_html=True)
         final_results["decision"] = orchestrator._decide_priority(final_results["specialists"])
         final_results["recommended_next_step"] = orchestrator._next_step(final_results["decision"])
+        
+        # Final Orchestrator completion
+        ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "done", is_master=True), unsafe_allow_html=True)
 
-    st.success(f"✅ {selected_scenario} Neutralized Autonomously")
+    st.success(f"✅ {selected_scenario} Neutralized Autonomously by Orchestrator")
     st.divider()
 
     col1, col2, col3 = st.columns([1.2, 1, 1.2])
     
     with col1:
-        st.markdown("### 🛑 Autonomous Action Log")
+        st.markdown("### 🛑 Orchestrator Execution Log")
         action_decision = final_results.get('recommended_next_step', 'isolate_and_block').replace('_', ' ').upper()
         
         st.markdown(f"""
         <div class="action-log">
-            [SYSTEM] AI swarm consensus reached.<br>
-            [SYSTEM] Bypassing human approval.<br>
+            [ORCHESTRATOR] Data payload parsed and routed.<br>
+            [ORCHESTRATOR] Sub-agent telemetry received.<br>
+            [ORCHESTRATOR] Cross-correlating findings...<br>
+            [ORCHESTRATOR] Final consensus reached. Bypassing human approval.<br>
             <br>
-            > EXECUTING PLAYBOOK: {action_decision}<br>
+            > DEPLOYING PLAYBOOK: {action_decision}<br>
             {s_data["actions"]}<br>
             <br>
             [STATUS] <span class="success-text">ENVIRONMENT SECURED.</span>
@@ -217,6 +242,15 @@ if run_workflow and backend_connected:
 
     with col3:
         st.markdown("### 🧠 AI Explainability Data")
+        
+        # Add an expander just for the Orchestrator's final synthesis
+        with st.expander("Master Orchestrator Final Decision", expanded=True):
+            st.json({
+                "computed_priority": final_results["decision"],
+                "executed_action": action_decision,
+                "agents_utilized": 5
+            })
+            
         for agent_name, agent_data in final_results.get("specialists", {}).items():
             if isinstance(agent_data, dict) and agent_name != "status":
                 with st.expander(f"{agent_name.replace('_', ' ').title()} Output"):
