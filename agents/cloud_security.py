@@ -5,11 +5,12 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from agents.rl_engine import RLMemoryEngine
 
 class CloudSecurityAgent:
-    def __init__(self, case_id="UNKNOWN", analyst="System"):
+    def __init__(self, cloud="aws", case_id="UNKNOWN", analyst="System"):
+        self.cloud = cloud
         self.case_id = case_id
         self.rl_engine = RLMemoryEngine()
 
-    def _run_cloud(self, cloud_config: dict) -> dict:
+    def assess_cloud_posture(self, cloud_config: dict) -> dict:
         if not cloud_config:
             return {}
             
@@ -41,3 +42,13 @@ class CloudSecurityAgent:
             
         except Exception as e:
             return {"error": str(e)}
+
+    # Aliases for method names
+    def _run_cloud(self, cloud_config: dict) -> dict:
+        return self.assess_cloud_posture(cloud_config)
+
+    def run(self, cloud_config: dict) -> dict:
+        return self.assess_cloud_posture(cloud_config)
+
+# Class Alias so both class names work seamlessly
+SOCAgentOrchestrator = CloudSecurityAgent
