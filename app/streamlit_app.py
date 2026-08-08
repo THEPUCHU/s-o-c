@@ -362,7 +362,7 @@ if run_workflow and backend_connected:
             "name": "Cloud Sec",
             "icon": "☁️",
             "ui": ui_cloud,
-            "run": lambda: orchestrator._run_cloud(live_incident["cloud_config"]),
+            "run": lambda: orchestrator._run_cloud_security(live_incident["cloud_config"]),
         },
         {
             "key": "compliance_analysis",
