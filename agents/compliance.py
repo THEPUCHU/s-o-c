@@ -9,7 +9,7 @@ class ComplianceAgent:
         self.case_id = case_id
         self.rl_engine = RLMemoryEngine()
 
-    def _run_compliance(self, controls: dict) -> dict:
+    def assess_compliance(self, controls: dict) -> dict:
         if not controls:
             return {}
             
@@ -41,3 +41,13 @@ class ComplianceAgent:
             
         except Exception as e:
             return {"error": str(e)}
+
+    # Aliases for method names
+    def _run_compliance(self, controls: dict) -> dict:
+        return self.assess_compliance(controls)
+
+    def run(self, controls: dict) -> dict:
+        return self.assess_compliance(controls)
+
+# Class Alias so both class names work seamlessly
+SOCAgentOrchestrator = ComplianceAgent
