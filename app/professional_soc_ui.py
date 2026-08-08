@@ -69,6 +69,7 @@ def render_agent_card(agent_name, icon, state, is_master=False):
     </div>
     """
 
+# --- COMPREHENSIVE MULTI-THREAT LIBRARY ---
 scenarios = {
     "External Cloud Breach": {
         "ip": "198.51.100.45", "file": "C:\\Windows\\Temp\\svchost_sus.exe", "cloud_env": "AWS (Root IAM Enabled)",
@@ -77,10 +78,46 @@ scenarios = {
         "nodes": ["External Threat<br>IP: 198.51.100.45", "Exposed Cloud Asset<br>Root IAM Enabled", "Lateral Movement<br>svchost_sus.exe"]
     },
     "Ransomware Outbreak": {
-        "ip": "203.0.113.88", "file": "invoice_pdf.exe", "cloud_env": "Azure (Blob Storage)",
+        "ip": "203.0.113.88", "file": "invoice_pdf.exe", "cloud_env": "Azure (Blob Storage Target)",
         "logs": ["2026-08-08 Mass file encryption detected", "2026-08-08 Outbound C2 beacon"],
         "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
         "nodes": ["Phishing Payload<br>invoice_pdf.exe", "Mass File Encryption<br>Local Drive", "C2 Beaconing<br>IP: 203.0.113.88"]
+    },
+    "Insider Data Exfiltration": {
+        "ip": "10.0.4.55", "file": "/usr/local/bin/db_dump.sh", "cloud_env": "GCP (Unauthorized DB Snapshot)",
+        "logs": ["2026-08-08 Massive DB read volume by User:jdoe", "2026-08-08 Snapshot exported to external bucket"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 1}},
+        "nodes": ["Internal Account<br>User: jdoe", "Unauthorized Script<br>db_dump.sh", "Data Exfiltration<br>External Bucket"]
+    },
+    "Volumetric DDoS Attack": {
+        "ip": "185.220.101.7", "file": "N/A (Network Flood)", "cloud_env": "AWS (CloudFront / ELB Edge)",
+        "logs": ["2026-08-08 Traffic spike 450Gbps detected", "2026-08-08 SYN flood targeting /login endpoint"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "nodes": ["Botnet Traffic<br>IP: 185.220.101.7", "Edge Overload<br>CloudFront / ELB", "Service Degradation<br>HTTP 503 Errors"]
+    },
+    "Supply Chain Dependency Attack": {
+        "ip": "162.243.189.11", "file": "/node_modules/express-helpers/setup.js", "cloud_env": "GCP (CI/CD Pipeline Build Node)",
+        "logs": ["2026-08-08 npm install executed malicious postinstall script", "2026-08-08 Outbound connection to unknown registry"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "nodes": ["Poisoned Package<br>npm postinstall", "CI/CD Runner<br>GCP Build Host", "Token Theft<br>Environment Leak"]
+    },
+    "Zero-Day Web Shell RCE": {
+        "ip": "45.154.255.120", "file": "/var/www/html/wp-content/uploads/cmd.php", "cloud_env": "AWS (Web Application Cluster)",
+        "logs": ["2026-08-08 HTTP POST 200 OK /cmd.php?cmd=id", "2026-08-08 www-data executed whoami and wget"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "nodes": ["Exploit Payload<br>Web Shell Injected", "Web Server<br>Apache/nginx process", "Persistence<br>cmd.php Execution"]
+    },
+    "Leaked Secrets & Cryptojacking": {
+        "ip": "194.26.29.112", "file": "/tmp/xmrig_miner", "cloud_env": "AWS (EC2 GPU Cluster)",
+        "logs": ["2026-08-08 AWS AccessKey leaked on public GitHub repo", "2026-08-08 32 g5.xlarge instances spawned in us-east-1"],
+        "config": {"iam": {"root_user_enabled": True}, "storage": {"public_buckets": 1}},
+        "nodes": ["Leaked IAM Key<br>GitHub Exposure", "Resource Abuse<br>32 EC2 Instances", "Cryptojacking<br>XMRig Process"]
+    },
+    "MFA Fatigue & Credential Stuffing": {
+        "ip": "103.251.170.8", "file": "N/A (Identity Compromise)", "cloud_env": "Azure AD / Okta SSO",
+        "logs": ["2026-08-08 142 MFA push notifications sent to User:admin in 3 minutes", "2026-08-08 MFA Approved from unrecognized device"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "nodes": ["Credential Abuse<br>Pass-the-Hash", "MFA Spam<br>User Fatigue", "Session Hijack<br>SSO Token Stolen"]
     }
 }
 
@@ -171,7 +208,7 @@ if st.session_state.swarm_ran and backend_connected:
 
         agg_data = st.session_state.final_results.get("aggregated_data", {})
         real_mitre = agg_data.get("mitre", ["T1078 - Valid Accounts"])
-        real_tools = agg_data.get("tools", ["VirusTotal API v3"])
+        real_tools = agg_data.get("tools", ["VirusTotal API v3", "Cloudflare API v4"])
         real_actions = agg_data.get("actions", ["Isolate Host"])
         real_predictions = agg_data.get("predictions", ["Lateral movement anticipated."])
         ai_deduced_attack = agg_data.get("attack_type", "Advanced Persistent Threat")
