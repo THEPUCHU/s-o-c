@@ -39,10 +39,18 @@ st.markdown("""
         --red: #ff5470;
     }
 
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background-color: var(--bg); color: var(--text-primary); }
+    html, body { font-family: 'Inter', sans-serif; }
+    .stApp { background-color: var(--bg); color: var(--text-primary); font-family: 'Inter', sans-serif; }
     [data-testid="stSidebar"] { background-color: var(--bg-elevated); border-right: 1px solid var(--border); }
-    [data-testid="stSidebar"] * { font-family: 'Inter', sans-serif; }
+
+    /* Apply Inter to sidebar text but exclude icon-font elements (Material Symbols),
+       otherwise the collapse-arrow icon renders as literal text like "keyboard_double_arrow_left" */
+    [data-testid="stSidebar"] :not([data-testid="stIconMaterial"]):not([class*="material"]) {
+        font-family: 'Inter', sans-serif;
+    }
+    [data-testid="stIconMaterial"], span[class*="material-symbols"], [data-testid="baseButton-headerNoPadding"] * {
+        font-family: 'Material Symbols Rounded', 'Material Icons' !important;
+    }
 
     h1, h2, h3, h4, h5 { color: var(--text-primary) !important; font-weight: 700; letter-spacing: -0.01em; }
     p, span, label, .stMarkdown { color: var(--text-primary); }
