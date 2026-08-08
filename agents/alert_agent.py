@@ -3,7 +3,7 @@ import streamlit as st
 
 class AlertAgent:
     def __init__(self, topic="soc_alerts_hackathon_99"):
-        # 🛑 ENSURE THIS IS YOUR EXACT NTFY TOPIC 🛑
+        # 🛑 ENSURE THIS MATCHES YOUR NTFY APP TOPIC 🛑
         self.topic = topic
         self.url = f"https://ntfy.sh/{self.topic}"
 
@@ -23,6 +23,7 @@ class AlertAgent:
             
             if res.status_code == 200:
                 print(f"✅ [AlertAgent] Push notification successfully delivered!")
+                # Visual confirmation in the Streamlit UI
                 if hasattr(st, "toast"):
                     st.toast("📱 Alert Agent successfully pinged your phone!", icon="🚨")
                 return True
