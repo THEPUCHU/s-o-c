@@ -16,7 +16,7 @@ except ImportError as e:
     st.error(f"Backend Connection Error: {e}")
 
 # --- PAGE CONFIGURATION & CSS ---
-# --- PAGE CONFIGURATION & CSS ---
+
 st.set_page_config(page_title="Autonomous SOC AI", page_icon="🔥", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -52,7 +52,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- HEADER ---
-st.markdown("<h1>🔥 Autonomous SOC AI</h1>", unsafe_allow_html=True)
+
 st.markdown("<p class='subtitle'>Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization</p>", unsafe_allow_html=True)
 
 # --- THREAT SCENARIOS DICTIONARY ---
