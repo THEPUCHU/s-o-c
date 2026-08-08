@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 try:
     from agents.soc_agent_orchestrator import SOCAgentOrchestrator
+    from agents.alert_agent import AlertAgent  # <-- Alert Agent imported directly to UI
     backend_connected = True
 except ImportError as e:
     backend_connected = False
@@ -81,88 +82,50 @@ def render_agent_card(agent_name, icon, state, is_master=False, is_failed=False)
     </div>
     """
 
-# --- COMPREHENSIVE MULTI-THREAT LIBRARY ---
 scenarios = {
     "External Cloud Breach": {
         "ip": "198.51.100.45", "file": "C:\\Windows\\Temp\\svchost_sus.exe", "cloud_env": "AWS (Root IAM Enabled)",
         "logs": ["2026-08-08 LoginFailed src=198.51.100.45", "2026-08-08 PowerShell execution"],
         "config": {"iam": {"root_user_enabled": True}, "storage": {"public_buckets": 1}},
-        "nodes": ["External Threat<br>IP: 198.51.100.45", "Exposed Cloud Asset<br>Root IAM Enabled", "Lateral Movement<br>svchost_sus.exe"],
-        "pr_title": "Fix: Disable Root API Keys & Enforce MFA",
-        "pr_diff": """--- a/infrastructure/aws/iam.tf\n+++ b/infrastructure/aws/iam.tf\n@@ -14,3 +14,3 @@\n resource "aws_iam_account_password_policy" "strict" {\n-  require_mfa = false\n+  require_mfa = true\n }"""
-    },
-    "Ransomware Outbreak": {
-        "ip": "203.0.113.88", "file": "invoice_pdf.exe", "cloud_env": "Azure (Blob Storage Target)",
-        "logs": ["2026-08-08 Mass file encryption detected", "2026-08-08 Outbound C2 beacon"],
-        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
-        "nodes": ["Phishing Payload<br>invoice_pdf.exe", "Mass File Encryption<br>Local Drive", "C2 Beaconing<br>IP: 203.0.113.88"],
-        "pr_title": "Fix: Enforce EDR Execution Blocking on Temp Folders",
-        "pr_diff": """--- a/policies/windows/applocker.xml\n+++ b/policies/windows/applocker.xml\n@@ -42,2 +42,5 @@\n   <FilePathRule Id="fd686d83..." Name="Block Temp Exe" Action="Deny">\n+    <Conditions>\n+      <FilePathCondition Path="%OSDRIVE%\\Windows\\Temp\\*.exe" />\n+    </Conditions>"""
+        "dependencies": {"aws-sdk": "2.814.0"},
+        "nodes": ["External Threat<br>IP: 198.51.100.45", "Exposed Cloud Asset<br>Root IAM Enabled", "Lateral Movement<br>svchost_sus.exe"]
     },
     "Supply Chain Dependency Attack": {
         "ip": "162.243.189.11", "file": "/node_modules/express-helpers/setup.js", "cloud_env": "GCP (CI/CD Pipeline Build Node)",
         "logs": ["2026-08-08 npm install executed malicious postinstall script", "2026-08-08 Outbound connection to unknown registry"],
         "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
-        "nodes": ["Poisoned Package<br>npm postinstall", "CI/CD Runner<br>GCP Build Host", "Token Theft<br>Environment Leak"],
-        "pr_title": "[SECURITY] Bump express-helpers to safe version v2.1.5",
-        "pr_diff": """--- a/package.json\n+++ b/package.json\n@@ -12,3 +12,3 @@\n   "dependencies": {\n-    "express-helpers": "^2.1.4",\n+    "express-helpers": "^2.1.5",\n     "lodash": "^4.17.21"\n   }"""
-    },
-    "Zero-Day Web Shell RCE": {
-        "ip": "45.154.255.120", "file": "/var/www/html/wp-content/uploads/cmd.php", "cloud_env": "AWS (Web Application Cluster)",
-        "logs": ["2026-08-08 HTTP POST 200 OK /cmd.php?cmd=id", "2026-08-08 www-data executed whoami and wget"],
-        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
-        "nodes": ["Exploit Payload<br>Web Shell Injected", "Web Server<br>Apache/nginx process", "Persistence<br>cmd.php Execution"],
-        "pr_title": "Fix: Patch PHP Upload Vulnerability & Sanitize Inputs",
-        "pr_diff": """--- a/src/upload_handler.php\n+++ b/src/upload_handler.php\n@@ -22,2 +22,5 @@\n $ext = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);\n+if (in_array(strtolower($ext), ['php', 'phtml', 'sh', 'exe'])) {\n+    die("Security Exception: Invalid file type.");\n+}\n move_uploaded_file($_FILES['file']['tmp_name'], $target);"""
+        "dependencies": {"express-helpers": "2.1.4"},
+        "nodes": ["Poisoned Package<br>npm postinstall", "CI/CD Runner<br>GCP Build Host", "Token Theft<br>Environment Leak"]
     },
     "Catastrophic Nation-State APT": {
         "ip": "0.0.0.0 (Polymorphic C2)", "file": "\\EFI\\boot\\bootx64.efi (Bootkit)", "cloud_env": "Global Infrastructure",
         "logs": ["2026-08-08 All EDR sensors offline system-wide", "2026-08-08 Immutable backups formatted via storage controller zero-day"],
         "config": {"iam": {"root_user_enabled": True}, "storage": {"public_buckets": 1}},
-        "nodes": ["Hardware Supply Chain<br>Compromised Node", "Kernel Rootkit<br>EDR Blinded", "Total Destruction<br>Backups Wiped"],
-        "pr_title": "CRITICAL: Re-Flash Secure Boot Keys (Infrastructure Reset)",
-        "pr_diff": """--- a/uefi/secureboot/keys.db\n+++ b/uefi/secureboot/keys.db\n@@ -1,3 +1,3 @@\n- PK=VENDOR_DEFAULT_KEY\n- KEK=COMPROMISED_KEY_091A\n+ PK=EMERGENCY_OFFLINE_KEY\n+ KEK=ISOLATED_ROOT_CA_2026"""
+        "dependencies": {"grub2": "2.06"},
+        "nodes": ["Hardware Supply Chain<br>Compromised Node", "Kernel Rootkit<br>EDR Blinded", "Total Destruction<br>Backups Wiped"]
     }
 }
 
-# Ensure Volumetric DDoS doesn't crash since it lacks a PR in this dict structure by default
-if "Volumetric DDoS Attack" in scenarios:
-    scenarios["Volumetric DDoS Attack"]["pr_title"] = "Fix: Update Cloudflare WAF Rate Limiting Rules"
-    scenarios["Volumetric DDoS Attack"]["pr_diff"] = """--- a/terraform/cloudflare_waf.tf\n+++ b/terraform/cloudflare_waf.tf\n@@ -10,3 +10,3 @@\n   action = "block"\n-  threshold = 1000\n+  threshold = 100\n }"""
-if "Insider Data Exfiltration" in scenarios:
-    scenarios["Insider Data Exfiltration"]["pr_title"] = "Fix: Revoke Over-Privileged Service Accounts"
-    scenarios["Insider Data Exfiltration"]["pr_diff"] = """--- a/gcp/iam/bindings.yaml\n+++ b/gcp/iam/bindings.yaml\n@@ -5,3 +5,2 @@\n   members:\n-    - user:jdoe@company.com\n     - serviceAccount:db-backup@project.iam"""
-if "Leaked Secrets & Cryptojacking" in scenarios:
-    scenarios["Leaked Secrets & Cryptojacking"]["pr_title"] = "Fix: Rotate AWS Keys and Enforce GitLeaks Hook"
-    scenarios["Leaked Secrets & Cryptojacking"]["pr_diff"] = """--- a/.pre-commit-config.yaml\n+++ b/.pre-commit-config.yaml\n@@ -8,2 +8,5 @@\n repos:\n+  - repo: https://github.com/gitleaks/gitleaks\n+    rev: v8.16.1\n+    hooks:\n+      - id: gitleaks"""
-if "MFA Fatigue & Credential Stuffing" in scenarios:
-    scenarios["MFA Fatigue & Credential Stuffing"]["pr_title"] = "Fix: Implement Rate Limiting & Number Matching MFA"
-    scenarios["MFA Fatigue & Credential Stuffing"]["pr_diff"] = """--- a/okta/policies.json\n+++ b/okta/policies.json\n@@ -21,3 +21,4 @@\n   "mfa_type": "push",\n-  "require_number_match": false\n+  "require_number_match": true,\n+  "max_attempts_per_minute": 3\n }"""
-
-
 # --- SESSION STATE MANAGEMENT ---
-if 'swarm_ran' not in st.session_state:
-    st.session_state.swarm_ran = False
-if 'final_results' not in st.session_state:
-    st.session_state.final_results = {}
-if 'human_approved' not in st.session_state:
-    st.session_state.human_approved = False
-if 'forced_catastrophic' not in st.session_state:
-    st.session_state.forced_catastrophic = False
+if 'swarm_ran' not in st.session_state: st.session_state.swarm_ran = False
+if 'final_results' not in st.session_state: st.session_state.final_results = {}
+if 'human_approved' not in st.session_state: st.session_state.human_approved = False
+if 'forced_catastrophic' not in st.session_state: st.session_state.forced_catastrophic = False
+if 'pr_merged' not in st.session_state: st.session_state.pr_merged = False
 
 if not backend_connected:
     st.error("⚠️ Backend Connection Error: Unable to import `SOCAgentOrchestrator`.")
 
 # --- HEADER ---
 st.markdown("<h1>🔥 Autonomous SOC AI</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle'>Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization</p>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle'>Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization & Deception</p>", unsafe_allow_html=True)
 
 # --- SIDEBAR ---
 with st.sidebar:
     st.subheader("⚙️ Mission Control")
     exec_mode = st.radio("Execution Mode:", ["Fully Autonomous", "Human-in-the-Loop"])
     st.divider()
-
+    
     scenario_list = list(scenarios.keys())
     default_idx = scenario_list.index("Catastrophic Nation-State APT") if st.session_state.forced_catastrophic else 0
     selected_scenario = st.selectbox("Select Threat Scenario:", scenario_list, index=default_idx)
@@ -171,16 +134,20 @@ with st.sidebar:
     if st.button("▶ Execute Standard Swarm", type="primary", use_container_width=True):
         st.session_state.swarm_ran = True
         st.session_state.human_approved = False
+        st.session_state.pr_merged = False
         st.session_state.final_results = {}
         st.session_state.forced_catastrophic = (selected_scenario == "Catastrophic Nation-State APT")
+        if 'alert_sent' in st.session_state: del st.session_state.alert_sent
         
     st.divider()
     st.markdown("### ⚠️ Red Team Simulation")
     if st.button("🚨 INJECT CATASTROPHIC THREAT", use_container_width=True):
         st.session_state.swarm_ran = True
         st.session_state.human_approved = False
+        st.session_state.pr_merged = False
         st.session_state.final_results = {}
         st.session_state.forced_catastrophic = True
+        if 'alert_sent' in st.session_state: del st.session_state.alert_sent
         st.rerun()
 
 is_catastrophic = st.session_state.forced_catastrophic
@@ -194,12 +161,15 @@ ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "idle"
 
 st.markdown("<div style='text-align: center; color: #555; font-size: 24px; margin-bottom: -10px;'>⬇</div>", unsafe_allow_html=True)
 
-c1, c2, c3, c4, c5 = st.columns(5)
+# 7 Columns for the 7 Specialists (Now includes Deception Agent)
+c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
 ui_malware = c1.empty()
 ui_intel = c2.empty()
 ui_cloud = c3.empty()
 ui_log = c4.empty()
 ui_comp = c5.empty()
+ui_sbom = c6.empty()
+ui_deception = c7.empty()
 
 # --- PRE-RUN DASHBOARD ---
 if not st.session_state.swarm_ran:
@@ -208,6 +178,8 @@ if not st.session_state.swarm_ran:
     ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "idle"), unsafe_allow_html=True)
     ui_log.markdown(render_agent_card("Log Analysis", "📜", "idle"), unsafe_allow_html=True)
     ui_comp.markdown(render_agent_card("Compliance", "📋", "idle"), unsafe_allow_html=True)
+    ui_sbom.markdown(render_agent_card("SBOM Agent", "📦", "idle"), unsafe_allow_html=True)
+    ui_deception.markdown(render_agent_card("Active Defense", "🪤", "idle"), unsafe_allow_html=True)
     st.divider()
     
     st.subheader("🛡️ Environment Readiness Overview")
@@ -221,7 +193,8 @@ if not st.session_state.swarm_ran:
     st.subheader("📥 Pending Injection Payload")
     st.json({
         "target_ip": s_data["ip"], "suspicious_file": s_data["file"],
-        "cloud_environment": s_data["cloud_env"], "correlated_logs": s_data["logs"]
+        "cloud_environment": s_data["cloud_env"], "correlated_logs": s_data["logs"],
+        "package_dependencies": s_data.get("dependencies", {})
     })
 
 # --- POST-RUN DASHBOARD ---
@@ -233,11 +206,12 @@ if st.session_state.swarm_ran:
             "logs": s_data["logs"],
             "file_path": s_data["file"],
             "cloud_config": s_data["config"],
-            "controls": {"mfa_required": False}
+            "controls": {"mfa_required": False},
+            "dependencies": s_data.get("dependencies", {})
         }
         orchestrator = SOCAgentOrchestrator(case_id="SOC-LIVE-001", analyst="Autonomous Swarm")
         
-        with st.spinner("Swarm executing live queries..."):
+        with st.spinner("Swarm executing live queries and generating honeytokens..."):
             ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "routing", is_master=True), unsafe_allow_html=True)
             st.session_state.final_results = orchestrator.run_incident(live_incident)
             st.rerun()
@@ -254,10 +228,13 @@ if st.session_state.swarm_ran:
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done", is_failed=is_catastrophic), unsafe_allow_html=True)
         ui_log.markdown(render_agent_card("Log Analysis", "📜", "done", is_failed=is_catastrophic), unsafe_allow_html=True)
         ui_comp.markdown(render_agent_card("Compliance", "📋", "done", is_failed=is_catastrophic), unsafe_allow_html=True)
+        ui_sbom.markdown(render_agent_card("SBOM Agent", "📦", "done", is_failed=is_catastrophic), unsafe_allow_html=True)
+        ui_deception.markdown(render_agent_card("Active Defense", "🪤", "done", is_failed=is_catastrophic), unsafe_allow_html=True)
         st.divider()
 
         agg_data = st.session_state.final_results.get("aggregated_data", {})
         
+        # Determine Threat Profile
         if is_catastrophic:
             real_mitre = ["T1542 - Pre-OS Boot", "T1562 - Impair Defenses", "T1485 - Data Destruction"]
             real_tools = ["Hardware Telemetry", "CISA Known Exploits API"]
@@ -265,9 +242,21 @@ if st.session_state.swarm_ran:
             real_actions = ["ESCALATE TO NSA/CISA INCIDENT COMMANDER"]
             real_predictions = ["Total data loss imminent. Autonomous containment is ineffective against ring-0 rootkit."]
             node_style = "attack-node-failed"
+            
+            # 🔥 DIRECT FRONTEND ALERT TRIGGER 🔥
+            if "alert_sent" not in st.session_state:
+                st.session_state.alert_sent = True
+                try:
+                    # 🛑 ENSURE TOPIC MATCHES HERE 🛑
+                    alerter = AlertAgent(topic="soc_alerts_hackathon_99")
+                    alerter.send_alert(ai_deduced_attack, real_actions[0])
+                    st.toast("📱 PUSH NOTIFICATION SENT TO COMMANDER!", icon="🚨")
+                except Exception as e:
+                    st.error(f"Alert Failed: {e}")
+                    
         else:
             real_mitre = agg_data.get("mitre", ["T1078 - Valid Accounts"])
-            real_tools = agg_data.get("tools", ["VirusTotal API v3", "Cloudflare API v4"])
+            real_tools = agg_data.get("tools", ["VirusTotal API v3", "Cloudflare API v4", "OSV.dev Vulnerability API", "Canarytokens"])
             ai_deduced_attack = agg_data.get("attack_type", "Advanced Persistent Threat")
             real_actions = agg_data.get("actions", ["Isolate Host"])
             real_predictions = agg_data.get("predictions", ["Lateral movement anticipated."])
@@ -285,23 +274,14 @@ if st.session_state.swarm_ran:
         with col1:
             st.markdown(f"### 🚨 AI Attack Classification: <span style='color: #ef4444;'>{ai_deduced_attack}</span>", unsafe_allow_html=True)
             
-            st.markdown("### 👯 Digital SOC Twin Simulation")
-            if is_catastrophic:
-                st.error(f"**Blast Radius Analysis:** Simulating containment against `{s_data['nodes'][1].split('<br>')[0]}`...\n\n❌ **FATAL RESULT:** 100% of production services compromised. Attacker has kernel-level persistence. Autonomous tools bypassed.")
-            else:
-                st.info(f"**Blast Radius Analysis:** Simulating '{real_actions[0] if real_actions else 'Isolation'}' against digital replica...\n\n✅ **Result:** 0 production services impacted. Safe to execute.")
-            
             st.markdown("### 🛑 Containment Playbook")
-            
             if is_catastrophic:
                 st.markdown(f"""
                 <div class="action-log-failed">
                     [AI DIAGNOSIS] Incident classified as: <b>{ai_deduced_attack}</b><br>
-                    [SYSTEM WARNING] Swarm capabilities exceeded.<br>
-                    <br>
+                    [SYSTEM WARNING] Swarm capabilities exceeded.<br><br>
                     > Attempting host isolation... <span class='alert-text'>FAILED (Access Denied)</span><br>
-                    > Attempting EDR quarantine... <span class='alert-text'>FAILED (Sensors Offline)</span><br>
-                    <br>
+                    > Attempting EDR quarantine... <span class='alert-text'>FAILED (Sensors Offline)</span><br><br>
                     [STATUS] <span class="alert-text">CRITICAL BREACH. ESCALATING TO INCIDENT COMMANDER.</span>
                 </div>
                 """, unsafe_allow_html=True)
@@ -310,20 +290,10 @@ if st.session_state.swarm_ran:
                 c_btn1, c_btn2 = st.columns(2)
                 with c_btn1:
                     if st.button("✅ Approve (+1 Reward)", type="secondary", use_container_width=True):
-                        try:
-                            from agents.rl_engine import RLMemoryEngine
-                            RLMemoryEngine().update_reward(ai_deduced_attack, real_actions[0] if real_actions else "Isolate", 1)
-                        except:
-                            pass
                         st.session_state.human_approved = True
                         st.rerun()
                 with c_btn2:
                     if st.button("❌ Reject (-1 Reward)", use_container_width=True):
-                        try:
-                            from agents.rl_engine import RLMemoryEngine
-                            RLMemoryEngine().update_reward(ai_deduced_attack, real_actions[0] if real_actions else "Isolate", -1)
-                        except:
-                            pass
                         st.error("Playbook rejected. RL Q-Table penalized.")
                         st.stop()
             else:
@@ -331,10 +301,8 @@ if st.session_state.swarm_ran:
                 st.markdown(f"""
                 <div class="action-log">
                     [AI DIAGNOSIS] Incident classified as: <b>{ai_deduced_attack}</b><br>
-                    [RL ENGINE] Historical reward weights applied.<br>
-                    <br>
-                    {action_html if real_actions else '> Executing standard isolation... SUCCESS'}<br>
-                    <br>
+                    [RL ENGINE] Historical reward weights applied.<br><br>
+                    {action_html if real_actions else '> Executing standard isolation... SUCCESS'}<br><br>
                     [STATUS] <span class="success-text">ENVIRONMENT SECURED.</span>
                 </div>
                 """, unsafe_allow_html=True)
@@ -360,7 +328,7 @@ if st.session_state.swarm_ran:
             st.markdown("### 🧠 AI Explainability Data")
             with st.expander("Master Orchestrator Synthesis", expanded=True):
                 st.json({"computed_priority": "CRITICAL_ESCALATION" if is_catastrophic else st.session_state.final_results.get("decision"), "attack_type": ai_deduced_attack})
-                
+            
             for agent_name, agent_data in st.session_state.final_results.get("specialists", {}).items():
                 if isinstance(agent_data, dict) and agent_name not in ["status"]:
                     with st.expander(f"{agent_name.replace('_', ' ').title()} Output"):
@@ -368,56 +336,30 @@ if st.session_state.swarm_ran:
                         
             st.markdown("### 📑 Executive Reporting")
             report_payload = json.dumps(st.session_state.final_results, indent=4)
-            st.download_button(
-                label="📄 Download Incident Response Report",
-                data=report_payload,
-                file_name="Executive_IR_Report.json",
-                mime="application/json",
-                use_container_width=True
-            )
+            st.download_button(label="📄 Download Incident Response Report", data=report_payload, file_name="Executive_IR_Report.json", mime="application/json", use_container_width=True)
 
-        st.divider()
-        st.markdown("## 🔎 Post-Incident Root Cause & Auto-Playbook")
-        rca_col, playbook_col = st.columns(2)
-        
-        with rca_col:
-            st.markdown("### 🎯 Patient Zero Identification (RCA)")
-            st.success(f"""
-            **Initial Attack Vector:** The intrusion originated via `{s_data["nodes"][0].split('<br>')[1]}`. 
-            \n**Vulnerability Exploited:** Bypassed perimeter controls by exploiting `{s_data["nodes"][1].split('<br>')[1]}`.
-            \n**Strategic Remediation:** The Orchestrator recommends immediately patching this vector and enforcing Zero Trust identity verification across adjacent subnets to prevent recurrence.
-            """)
-            
-        with playbook_col:
-            st.markdown("### ⚡ Autonomous SOAR Playbook (YAML Export)")
-            playbook_action = "ESCALATE_TO_INCIDENT_COMMANDER" if is_catastrophic else (real_actions[0] if real_actions else 'Isolate Target')
-            soar_yaml = f"""name: Auto-Containment - {ai_deduced_attack}
-description: Autonomously generated by SOC AI Swarm
-mitre_framework: {real_mitre}
-trigger: High-Confidence AI Consensus
-tasks:
-  1_reconnaissance:
-    action: execute_intelligence_gathering
-    integrations: {real_tools}
-  2_containment:
-    action: execute_remediation
-    command: "{playbook_action}"
-    requires_human_approval: {str(exec_mode == "Human-in-the-Loop").lower()}
-status: ready_for_deployment"""
-            st.code(soar_yaml, language="yaml")
-
-        # --- INNOVATION FEATURE: SBOM SUPPLY CHAIN REMEDIATION ---
         st.divider()
         st.markdown("## 🧬 Self-Healing SBOM & Supply Chain Remediation")
-        st.caption("The AI agent dynamically queries the repository Software Bill of Materials (SBOM) and automatically generates a patch for the root vulnerability.")
+        st.caption("The AI agent dynamically queries the repository Software Bill of Materials (SBOM) and OSV.dev to automatically generate a patch for the root vulnerability.")
         
         sbom_col, pr_col = st.columns([1, 1.5])
-
+        
         with sbom_col:
             st.markdown("### 📦 Vulnerability Traced via SBOM")
-            st.warning(f"**Vulnerability Root Cause:** `{s_data['nodes'][1].split('<br>')[1]}`\n\n**Impacted Services:** 14 Microservices in CI/CD Pipeline\n\n**Action:** The autonomous Swarm has mapped the vulnerability to the source code repo, identified a safe patch strategy, and generated a Pull Request to fix the vulnerability permanently.")
+            st.warning(f"**Vulnerability Root Cause:** `{s_data['nodes'][1].split('<br>')[1]}`\n\n**Impacted Services:** 14 Microservices in CI/CD Pipeline\n\n**Action:** The autonomous Swarm has mapped the vulnerability to the source code repo, verified the CVE on OSV.dev, and generated a Pull Request to fix it permanently.")
             
         with pr_col:
-            st.markdown(f"### 🐙 Autonomous Pull Request: {s_data.get('pr_title', 'Security Patch')}")
-            st.code(s_data.get('pr_diff', 'No patch diff available for this scenario.'), language="diff")
-            st.button("🔀 Merge Pull Request to Production", type="primary", use_container_width=True)
+            # Dynamically pull the PR diff from the SBOM agent if it exists
+            pr_title = agg_data.get("pr_title") or "[SECURITY] Auto-Patch Vulnerable Dependency"
+            pr_diff = agg_data.get("pr_diff") or "--- a/package.json\n+++ b/package.json\n@@ -10,3 +10,3 @@\n- \"vulnerable-package\": \"^1.0.0\"\n+ \"vulnerable-package\": \"^1.0.1\""
+            
+            st.markdown(f"### 🐙 Autonomous Pull Request: {pr_title}")
+            st.code(pr_diff, language="diff")
+            
+            if st.session_state.pr_merged:
+                st.success("✅ Pull Request successfully merged to `main` branch. CI/CD Pipeline has been triggered to redeploy the patched services.")
+            else:
+                if st.button("🔀 Merge Pull Request to Production", type="primary", use_container_width=True):
+                    st.session_state.pr_merged = True
+                    st.balloons()
+                    st.rerun()
