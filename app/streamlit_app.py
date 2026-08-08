@@ -243,17 +243,19 @@ if st.session_state.swarm_ran:
             real_predictions = ["Total data loss imminent. Autonomous containment is ineffective against ring-0 rootkit."]
             node_style = "attack-node-failed"
             
-            # 🔥 DIRECT FRONTEND ALERT TRIGGER 🔥
+           # 🔥 DIRECT FRONTEND ALERT TRIGGER - CLEANED UP 🔥
             if "alert_sent" not in st.session_state:
                 st.session_state.alert_sent = True
                 try:
-                    # 🛑 ENSURE TOPIC MATCHES HERE 🛑
+                    # 🛑 ENSURE TOPIC MATCHES YOUR NTFY APP 🛑
                     alerter = AlertAgent(topic="soc_alerts_hackathon_99")
                     alerter.send_alert(ai_deduced_attack, real_actions[0])
-                    st.toast("📱 PUSH NOTIFICATION SENT TO COMMANDER!", icon="🚨")
-                except Exception as e:
-                    st.error(f"Alert Failed: {e}")
                     
+                    # No 'icon' parameter here - this prevents the codec crash
+                    st.toast("PUSH NOTIFICATION SENT TO COMMANDER!")
+                except Exception as e:
+                    # No 'icon' parameter here either
+                    st.toast(f"Alert Failed: {str(e)}")
         else:
             real_mitre = agg_data.get("mitre", ["T1078 - Valid Accounts"])
             real_tools = agg_data.get("tools", ["VirusTotal API v3", "Cloudflare API v4", "OSV.dev Vulnerability API", "Canarytokens"])
