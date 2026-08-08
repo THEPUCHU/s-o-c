@@ -1,6 +1,6 @@
 import streamlit as st
 import sys
-import json
+import time
 from pathlib import Path
 
 # --- BULLETPROOF PATH ROUTING ---
@@ -25,7 +25,13 @@ st.markdown("""
     h1, h2, h3, h4 { color: #ff8c00 !important; font-weight: 600; }
     hr { border-top: 2px solid #ff6600 !important; opacity: 0.3; }
     div.stButton > button[kind="primary"] { background-color: #ff6600 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #ff8c00 !important; }
-    
+
+    /* Centered Logo / Header */
+    .logo-wrap { text-align: center; margin-top: -10px; margin-bottom: 5px; }
+    .logo-wrap .logo-emoji { font-size: 54px; filter: drop-shadow(0 0 12px rgba(255,102,0,0.6)); }
+    .logo-wrap h1 { display: inline-block; margin: 0 0 0 12px; vertical-align: middle; }
+    .logo-caption { text-align: center; color: #999; margin-top: -5px; }
+
     /* Terminal Log */
     .action-log { 
         font-family: 'Courier New', monospace; color: #ff8c00; background: #0a0a0a; 
@@ -33,7 +39,7 @@ st.markdown("""
     }
     .success-text { color: #34d399; font-weight: bold; }
     .alert-text { color: #ef4444; font-weight: bold; }
-    
+
     /* Attack Chain Visualization */
     .attack-node {
         background: #111; border: 1px solid #ff6600; border-radius: 8px; padding: 10px;
@@ -93,12 +99,60 @@ scenarios = {
         "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
         "actions": "> Disabling AD Account 'jdoe'... <span class='success-text'>SUCCESS</span><br>> Terminating active DB sessions... <span class='success-text'>SUCCESS</span><br>> Deleting unauthorized GCP snapshot... <span class='success-text'>SUCCESS</span>",
         "nodes": ["Internal Account<br>User: jdoe", "Unauthorized Script<br>db_dump.sh", "Data Exfiltration<br>External Bucket"]
+    },
+    "DDoS Volumetric Attack": {
+        "ip": "185.220.101.7",
+        "file": "N/A (Network Layer Attack)",
+        "cloud_env": "AWS (CloudFront / ELB Target)",
+        "logs": ["2026-08-08 Traffic spike 400Gbps detected", "2026-08-08 SYN flood from botnet cluster"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "actions": "> Enabling Scrubbing Center Redirect... <span class='success-text'>SUCCESS</span><br>> Blackholing Botnet Source Ranges... <span class='success-text'>SUCCESS</span><br>> Scaling Edge Capacity +300%... <span class='success-text'>SUCCESS</span>",
+        "nodes": ["Botnet Cluster<br>10,000+ Nodes", "Volumetric Flood<br>400Gbps SYN", "Edge Saturation<br>ELB / CloudFront"]
+    },
+    "Supply Chain Compromise": {
+        "ip": "45.33.12.190",
+        "file": "C:\\Program Files\\VendorApp\\update_pkg.dll",
+        "cloud_env": "Azure (CI/CD Pipeline Target)",
+        "logs": ["2026-08-08 Unsigned DLL injected via vendor update", "2026-08-08 Anomalous outbound traffic post-update"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "actions": "> Halting CI/CD Deployment Pipeline... <span class='success-text'>SUCCESS</span><br>> Rolling Back Vendor Package... <span class='success-text'>SUCCESS</span><br>> Quarantining update_pkg.dll... <span class='success-text'>SUCCESS</span>",
+        "nodes": ["Compromised Vendor<br>Update Channel", "Malicious DLL<br>update_pkg.dll", "Pipeline Injection<br>CI/CD System"]
+    },
+    "Zero-Day Exploit (Web App)": {
+        "ip": "91.219.237.14",
+        "file": "/var/www/html/shell_backdoor.php",
+        "cloud_env": "GCP (App Engine / Public Bucket)",
+        "logs": ["2026-08-08 Anomalous WAF bypass detected", "2026-08-08 Webshell dropped via unpatched CVE"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 1}},
+        "actions": "> Deploying Virtual Patch to WAF... <span class='success-text'>SUCCESS</span><br>> Removing Webshell shell_backdoor.php... <span class='success-text'>SUCCESS</span><br>> Isolating App Engine Instance... <span class='success-text'>SUCCESS</span>",
+        "nodes": ["Unpatched CVE<br>Web Application", "Webshell Drop<br>shell_backdoor.php", "Remote Code Exec<br>App Engine Instance"]
+    },
+    "Executive Phishing (BEC)": {
+        "ip": "77.88.55.203",
+        "file": "N/A (Social Engineering / Email)",
+        "cloud_env": "Microsoft 365 (Mailbox Compromise)",
+        "logs": ["2026-08-08 Impossible travel login for CFO account", "2026-08-08 Wire transfer request sent from mailbox rule"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "actions": "> Forcing Password Reset + MFA Re-enrollment... <span class='success-text'>SUCCESS</span><br>> Removing Malicious Mailbox Forwarding Rule... <span class='success-text'>SUCCESS</span><br>> Freezing Pending Wire Transfer... <span class='success-text'>SUCCESS</span>",
+        "nodes": ["Credential Phish<br>CFO Mailbox", "Malicious Mail Rule<br>Auto-Forwarding", "Fraudulent Wire<br>Transfer Request"]
     }
 }
 
-# --- HEADER ---
-st.title("🔥 Autonomous SOC AI")
-st.caption("Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization")
+# --- DIFFICULTY SETTINGS (controls agent animation pacing) ---
+difficulty_settings = {
+    "Easy":      {"delay": 0.15, "desc": "Fast pass — agents react almost instantly."},
+    "Medium":    {"delay": 0.45, "desc": "Standard pace — realistic analysis time."},
+    "Hard":      {"delay": 0.9,  "desc": "Deliberate — agents take longer to correlate signals."},
+    "Nightmare": {"delay": 1.6,  "desc": "Slow burn — every stage lingers under pressure."},
+}
+
+# --- HEADER (centered logo) ---
+st.markdown("""
+<div class="logo-wrap">
+    <span class="logo-emoji">🔥</span><h1>Autonomous SOC AI</h1>
+</div>
+""", unsafe_allow_html=True)
+st.markdown('<p class="logo-caption">Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization</p>', unsafe_allow_html=True)
 st.divider()
 
 # --- SIDEBAR ---
@@ -106,10 +160,21 @@ with st.sidebar:
     st.subheader("⚙️ Mission Control")
     st.success("🟢 Autonomous Engine: ONLINE")
     st.divider()
-    
+
     selected_scenario = st.selectbox("Select Threat Scenario:", list(scenarios.keys()))
     s_data = scenarios[selected_scenario]
-    
+
+    st.divider()
+    st.subheader("🎚️ Threat Difficulty")
+    selected_difficulty = st.select_slider(
+        "Response Difficulty:",
+        options=list(difficulty_settings.keys()),
+        value="Medium"
+    )
+    st.caption(difficulty_settings[selected_difficulty]["desc"])
+    step_delay = difficulty_settings[selected_difficulty]["delay"]
+
+    st.divider()
     run_workflow = st.button("▶ Execute Agentic Response", type="primary", use_container_width=True)
 
 # --- NEURAL SWARM TRACKER ---
@@ -141,18 +206,18 @@ st.divider()
 # --- PRE-RUN DASHBOARD ---
 if not run_workflow:
     st.subheader("🛡️ Environment Readiness Overview")
-    
+
     m1, m2, m3, m4 = st.columns(4)
     m1.metric(label="Monitored Endpoints", value="12,402", delta="Online")
     m2.metric(label="Cloud Assets", value="843", delta="AWS, GCP, Azure")
     m3.metric(label="Active Policies", value="142", delta="NIST-800-53")
     m4.metric(label="Swarm Latency", value="12ms", delta="Optimal", delta_color="normal")
-    
+
     st.divider()
-    
+
     st.subheader("📥 Pending Injection Payload")
-    st.info(f"Targeting: {selected_scenario}. The Orchestrator will ingest this data upon deployment.")
-    
+    st.info(f"Targeting: {selected_scenario} · Difficulty: {selected_difficulty}. The Orchestrator will ingest this data upon deployment.")
+
     st.json({
         "target_ip": s_data["ip"],
         "suspicious_file": s_data["file"],
@@ -174,48 +239,56 @@ if run_workflow and backend_connected:
     final_results = {"specialists": {}}
 
     with st.spinner("Master Orchestrator has taken control..."):
-        
+
         # Step 1: Orchestrator Ingests & Routes
         ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "routing", is_master=True), unsafe_allow_html=True)
-        
+        time.sleep(step_delay)
+
         # Step 2: Agents execute
         ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "running"), unsafe_allow_html=True)
+        time.sleep(step_delay)
         final_results["specialists"]["threat_intelligence"] = orchestrator._run_threat_intel(live_incident["observables"])
         ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "done"), unsafe_allow_html=True)
-        
+
         ui_log.markdown(render_agent_card("Log Analysis", "📜", "running"), unsafe_allow_html=True)
+        time.sleep(step_delay)
         final_results["specialists"]["log_analysis"] = orchestrator._run_log_analysis(live_incident["logs"])
         ui_log.markdown(render_agent_card("Log Analysis", "📜", "done"), unsafe_allow_html=True)
-        
+
         ui_malware.markdown(render_agent_card("Malware AI", "🦠", "running"), unsafe_allow_html=True)
+        time.sleep(step_delay)
         final_results["specialists"]["malware_analysis"] = orchestrator._run_malware(live_incident["file_path"])
         ui_malware.markdown(render_agent_card("Malware AI", "🦠", "done"), unsafe_allow_html=True)
-        
+
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
+        time.sleep(step_delay)
+        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud(live_incident["cloud_config"])
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
-        
+
         ui_comp.markdown(render_agent_card("Compliance", "📋", "running"), unsafe_allow_html=True)
+        time.sleep(step_delay)
         final_results["specialists"]["compliance_analysis"] = orchestrator._run_compliance(live_incident["controls"])
         ui_comp.markdown(render_agent_card("Compliance", "📋", "done"), unsafe_allow_html=True)
 
         # Step 3: Orchestrator re-takes control to decide final action
         ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "consensus", is_master=True), unsafe_allow_html=True)
+        time.sleep(step_delay)
         final_results["decision"] = orchestrator._decide_priority(final_results["specialists"])
         final_results["recommended_next_step"] = orchestrator._next_step(final_results["decision"])
-        
+
         # Final Orchestrator completion
         ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "done", is_master=True), unsafe_allow_html=True)
+        time.sleep(step_delay)
 
-    st.success(f"✅ {selected_scenario} Neutralized Autonomously by Orchestrator")
+    st.success(f"✅ {selected_scenario} Neutralized Autonomously by Orchestrator ({selected_difficulty} difficulty)")
     st.divider()
 
     col1, col2, col3 = st.columns([1.2, 1, 1.2])
-    
+
     with col1:
         st.markdown("### 🛑 Orchestrator Execution Log")
         action_decision = final_results.get('recommended_next_step', 'isolate_and_block').replace('_', ' ').upper()
-        
+
         st.markdown(f"""
         <div class="action-log">
             [ORCHESTRATOR] Data payload parsed and routed.<br>
@@ -242,15 +315,16 @@ if run_workflow and backend_connected:
 
     with col3:
         st.markdown("### 🧠 AI Explainability Data")
-        
+
         # Add an expander just for the Orchestrator's final synthesis
         with st.expander("Master Orchestrator Final Decision", expanded=True):
             st.json({
                 "computed_priority": final_results["decision"],
                 "executed_action": action_decision,
-                "agents_utilized": 5
+                "agents_utilized": 5,
+                "difficulty": selected_difficulty
             })
-            
+
         for agent_name, agent_data in final_results.get("specialists", {}).items():
             if isinstance(agent_data, dict) and agent_name != "status":
                 with st.expander(f"{agent_name.replace('_', ' ').title()} Output"):
