@@ -42,36 +42,35 @@ class SOCAgentOrchestrator:
         return DeceptionAgent().run(threat_context)
 
     def _trigger_soar_webhook(self, threat_type: str, action: str):
-        """Fires a live push notification via ntfy.sh and optional Discord/Slack webhook."""
-        # 1. ntfy.sh Notification
-        topic = "soc_alerts_hackathon_99"  # Replace with your custom ntfy topic name if needed
+        """Fires a live push notification to your phone using ntfy.sh"""
+        
+        # 🛑 ENSURE THIS IS YOUR EXACT NTFY TOPIC 🛑
+        topic = "soc_alerts_hackathon_99" 
+        
         url = f"https://ntfy.sh/{topic}"
-        message = f"CRITICAL SOC ESCALATION\nThreat: {threat_type}\nAction: {action}"
+        message = f"🚨 CRITICAL SOC ESCALATION\nThreat: {threat_type}\nAction: {action}"
         
         headers = {
-            "Title": "🚨 SOC Swarm Alert",
+            "Title": "🚨 SOC AI Swarm Alert",
             "Priority": "urgent",
             "Tags": "rotating_light,skull"
         }
         
         try:
-            requests.post(url, data=message, headers=headers, timeout=5)
-            if hasattr(st, "toast"):
-                st.toast("📱 Mobile Push Notification Dispatched!", icon="🚨")
+            # We are using st.toast to force it to show up on the screen!
+            res = requests.post(url, data=message, headers=headers, timeout=5)
+            if res.status_code == 200:
+                print("✅ [AI] Push notification sent!")
+                if hasattr(st, "toast"):
+                    st.toast("📱 AI successfully pinged your phone!", icon="🚨")
+            else:
+                print(f"❌ [AI] Failed: {res.status_code}")
+                if hasattr(st, "toast"):
+                    st.toast(f"⚠️ AI failed to ping phone: HTTP {res.status_code}", icon="⚠️")
         except Exception as e:
-            print(f"[NTFY ERROR]: {e}")
-
-        # 2. Discord / Slack Webhook Fallback (If configured in secrets)
-        webhook_url = st.secrets.get("SOAR_WEBHOOK_URL", "")
-        if webhook_url:
-            payload = {
-                "content": f"🚨 @everyone **CRITICAL SOC ESCALATION** 🚨\n**Threat:** {threat_type}\n**Recommended Action:** {action}\n**Status:** Awaiting Incident Commander Override.",
-                "text": f"🚨 @everyone *CRITICAL SOC ESCALATION* 🚨\n*Threat:* {threat_type}\n*Recommended Action:* {action}\n*Status:* Awaiting Incident Commander Override."
-            }
-            try:
-                requests.post(webhook_url, json=payload, timeout=5)
-            except Exception as e:
-                print(f"[WEBHOOK ERROR]: {e}")
+            print(f"❌ [AI] Exception: {e}")
+            if hasattr(st, "toast"):
+                st.toast(f"⚠️ AI Python Error: {e}", icon="⚠️")
 
     def _compute_master_consensus(self, specialists_data: dict) -> dict:
         """Uses Groq to act as the Master Brain, synthesizing all 7 agent outputs to form a final verdict."""
@@ -165,7 +164,7 @@ class SOCAgentOrchestrator:
         results["decision"] = consensus.get("decision", "critical_containment")
         results["recommended_next_step"] = consensus.get("recommended_next_step", "isolate")
 
-        # 4. Dispatch mobile push notification / alert
+        # 4. 🔥 FORCE THE AI TO TRIGGER THE ALERT EVERY TIME 🔥
         self._trigger_soar_webhook(attack_type, results["recommended_next_step"])
 
         return results
