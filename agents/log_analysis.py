@@ -9,7 +9,7 @@ class SOCLogWorkflow:
         self.case_id = case_id
         self.rl_engine = RLMemoryEngine()
 
-    def _run_log_analysis(self, logs: list) -> dict:
+    def run(self, logs: list) -> dict:
         if not logs:
             return {}
         
