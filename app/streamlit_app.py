@@ -16,61 +16,144 @@ except ImportError as e:
     backend_connected = False
     st.error(f"Backend Connection Error: {e}")
 
-# --- PAGE CONFIGURATION & CSS ---
+# --- PAGE CONFIGURATION & DESIGN SYSTEM ---
 st.set_page_config(page_title="Autonomous SOC AI", page_icon="🔥", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #050505; color: #eaeaea; }
-    [data-testid="stSidebar"] { background-color: #0d0d0d; border-right: 2px solid #ff6600; }
-    h1, h2, h3, h4 { color: #ff8c00 !important; font-weight: 600; }
-    hr { border-top: 2px solid #ff6600 !important; opacity: 0.3; }
-    div.stButton > button[kind="primary"] { background-color: #ff6600 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #ff8c00 !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-    /* Centered Logo / Header */
-    .logo-wrap { text-align: center; margin-top: -10px; margin-bottom: 5px; }
-    .logo-wrap .logo-emoji { font-size: 54px; filter: drop-shadow(0 0 12px rgba(255,102,0,0.6)); }
-    .logo-wrap h1 { display: inline-block; margin: 0 0 0 12px; vertical-align: middle; }
-    .logo-caption { text-align: center; color: #999; margin-top: -5px; }
+    :root {
+        --bg: #08090b;
+        --bg-elevated: #101216;
+        --bg-card: #14161b;
+        --border: #23262e;
+        --accent: #ff6a1a;
+        --accent-soft: #ff6a1a22;
+        --accent-glow: #ff6a1a55;
+        --text-primary: #f2f2f0;
+        --text-muted: #8b8f98;
+        --blue: #4f8cff;
+        --purple: #a970ff;
+        --green: #2fd18f;
+        --red: #ff5470;
+    }
+
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    .stApp { background-color: var(--bg); color: var(--text-primary); }
+    [data-testid="stSidebar"] { background-color: var(--bg-elevated); border-right: 1px solid var(--border); }
+    [data-testid="stSidebar"] * { font-family: 'Inter', sans-serif; }
+
+    h1, h2, h3, h4, h5 { color: var(--text-primary) !important; font-weight: 700; letter-spacing: -0.01em; }
+    p, span, label, .stMarkdown { color: var(--text-primary); }
+    hr { border-top: 1px solid var(--border) !important; opacity: 1; margin: 1.1rem 0; }
+
+    /* Buttons */
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #ff6a1a, #ff8c3a) !important;
+        color: #0a0a0a !important; font-weight: 700 !important; border: none !important;
+        border-radius: 10px !important; padding: 0.6rem 1rem !important;
+        box-shadow: 0 4px 18px var(--accent-glow) !important; transition: transform 0.15s ease !important;
+    }
+    div.stButton > button[kind="primary"]:hover { transform: translateY(-1px); }
+
+    /* ===== Header: icon + title on ONE line, status pill inline ===== */
+    .app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+    .app-header-left { display: flex; align-items: center; gap: 12px; }
+    .app-header-left .flame { font-size: 30px; line-height: 1; filter: drop-shadow(0 0 10px var(--accent-glow)); }
+    .app-header-left h1 { font-size: 26px; margin: 0; line-height: 1; }
+    .status-pill {
+        display: inline-flex; align-items: center; gap: 7px; background: #0f2318; border: 1px solid #1f4a34;
+        color: var(--green); font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .app-subtitle { color: var(--text-muted); font-size: 13.5px; margin-top: 2px; margin-bottom: 18px; }
+
+    /* Section labels */
+    .section-label { color: var(--text-muted); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+
+    /* Agent cards */
+    .agent-card {
+        border-radius: 12px; padding: 14px 10px; text-align: center; border: 1px solid var(--border);
+        background: var(--bg-card); transition: all 0.25s ease; position: relative;
+    }
+    .agent-card .icon { font-size: 24px; margin-bottom: 8px; }
+    .agent-card .name { font-size: 13px; font-weight: 600; margin: 0; }
+    .agent-card .status { font-size: 11px; margin-top: 4px; font-weight: 500; }
+    .agent-card.master { padding: 16px 12px; }
+
+    .connector { text-align: center; color: var(--border); font-size: 18px; margin: 2px 0 8px 0; }
 
     /* Terminal Log */
-    .action-log { 
-        font-family: 'Courier New', monospace; color: #ff8c00; background: #0a0a0a; 
-        padding: 15px; border-radius: 5px; border: 1px solid #333; border-left: 4px solid #ff6600; line-height: 1.6;
+    .action-log {
+        font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #ffb37a; background: #0a0b0d;
+        padding: 16px; border-radius: 10px; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+        line-height: 1.75;
     }
-    .success-text { color: #34d399; font-weight: bold; }
-    .alert-text { color: #ef4444; font-weight: bold; }
+    .success-text { color: var(--green); font-weight: 600; }
+    .alert-text { color: var(--red); font-weight: 700; }
 
     /* Attack Chain Visualization */
     .attack-node {
-        background: #111; border: 1px solid #ff6600; border-radius: 8px; padding: 10px;
-        text-align: center; margin-bottom: 10px; box-shadow: 0 0 10px rgba(255, 102, 0, 0.2);
+        background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--red);
+        border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
     }
-    .arrow { text-align: center; color: #ff6600; font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+    .attack-node .title { color: var(--red); font-weight: 700; font-size: 13.5px; }
+    .attack-node .sub { color: var(--text-muted); font-size: 12.5px; margin-top: 2px; }
+    .arrow { text-align: center; color: var(--border); font-size: 16px; margin-bottom: 8px; }
+
+    /* Metric cards (custom, replacing default st.metric look) */
+    .metric-card {
+        background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+        padding: 14px 16px;
+    }
+    .metric-card .m-label { color: var(--text-muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-card .m-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+    .metric-card .m-delta { font-size: 12px; color: var(--accent); margin-top: 2px; }
+
+    [data-testid="stMetricValue"] { color: var(--text-primary); }
+    [data-testid="stMetricDelta"] { color: var(--accent) !important; }
+
+    .stAlert { border-radius: 10px !important; }
     </style>
 """, unsafe_allow_html=True)
 
+
 def render_agent_card(agent_name, icon, state, is_master=False):
     if state == "idle":
-        border, bg, text, status = "#333333", "#111111", "#555555", "💤 Standby"
+        border, text, status = "#23262e", "#5c6170", "Standby"
     elif state == "running":
-        border, bg, text, status = "#ff6600", "#331a00", "#ff8c00", "⚡ Processing..."
+        border, text, status = "#ff6a1a", "#ff8c3a", "Processing…"
     elif state == "routing":
-        border, bg, text, status = "#3b82f6", "#172554", "#60a5fa", "📡 Routing Tasks..."
+        border, text, status = "#4f8cff", "#79a6ff", "Routing tasks…"
     elif state == "consensus":
-        border, bg, text, status = "#a855f7", "#3b0764", "#c084fc", "⚖️ Computing Consensus..."
-    else: 
-        border, bg, text, status = "#10b981", "#022c22", "#34d399", "✅ Deployed"
+        border, text, status = "#a970ff", "#c49bff", "Computing consensus…"
+    else:
+        border, text, status = "#2fd18f", "#4fe0a5", "Deployed"
 
-    box_shadow = f"box-shadow: 0 0 15px {border}40;" if is_master else ""
+    glow = f"box-shadow: 0 0 22px {border}30;" if state != "idle" else ""
+    master_class = "master" if is_master else ""
 
     return f"""
-    <div style="border: 2px solid {border}; background-color: {bg}; padding: 15px; border-radius: 8px; text-align: center; transition: all 0.2s ease; {box_shadow}">
-        <div style="font-size: 28px; margin-bottom: 10px;">{icon}</div>
-        <h4 style="color: {text}; margin: 0; font-size: 15px;">{agent_name}</h4>
-        <div style="color: {text}; font-size: 12px; margin-top: 5px;">{status}</div>
+    <div class="agent-card {master_class}" style="border-color: {border}; {glow}">
+        <div class="icon">{icon}</div>
+        <p class="name" style="color: {text};">{agent_name}</p>
+        <div class="status" style="color: {text};">{status}</div>
     </div>
     """
+
+
+def metric_card(label, value, delta=""):
+    delta_html = f'<div class="m-delta">{delta}</div>' if delta else ""
+    return f"""
+    <div class="metric-card">
+        <div class="m-label">{label}</div>
+        <div class="m-value">{value}</div>
+        {delta_html}
+    </div>
+    """
+
 
 # --- THREAT SCENARIOS DICTIONARY ---
 scenarios = {
@@ -149,54 +232,54 @@ difficulty_settings = {
     "Nightmare": {"range": (1.00, 2.40), "desc": "Slow burn — every stage lingers under pressure."},
 }
 
+
 def fmt_duration(seconds):
     """Format a duration in ms if under a second, otherwise in seconds."""
     if seconds < 1:
         return f"{seconds * 1000:.0f} ms"
     return f"{seconds:.2f} s"
 
-# --- HEADER (centered logo) ---
+
+# --- HEADER: icon + title on one line, status pill on the right ---
 st.markdown("""
-<div class="logo-wrap">
-    <span class="logo-emoji">🔥</span><h1>Autonomous SOC AI</h1>
+<div class="app-header">
+    <div class="app-header-left">
+        <span class="flame">🔥</span><h1>Autonomous SOC AI</h1>
+    </div>
+    <div class="status-pill"><span class="status-dot"></span>ENGINE ONLINE</div>
 </div>
+<div class="app-subtitle">Self-directing agentic swarm · zero-latency threat neutralization</div>
 """, unsafe_allow_html=True)
-st.markdown('<p class="logo-caption">Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization</p>', unsafe_allow_html=True)
-st.divider()
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.subheader("⚙️ Mission Control")
-    st.success("🟢 Autonomous Engine: ONLINE")
-    st.divider()
-
-    selected_scenario = st.selectbox("Select Threat Scenario:", list(scenarios.keys()))
+    st.markdown('<div class="section-label">Threat Scenario</div>', unsafe_allow_html=True)
+    selected_scenario = st.selectbox("Select Threat Scenario:", list(scenarios.keys()), label_visibility="collapsed")
     s_data = scenarios[selected_scenario]
 
-    st.divider()
-    st.subheader("🎚️ Threat Difficulty")
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Response Difficulty</div>', unsafe_allow_html=True)
     selected_difficulty = st.select_slider(
         "Response Difficulty:",
         options=list(difficulty_settings.keys()),
-        value="Medium"
+        value="Medium",
+        label_visibility="collapsed"
     )
     st.caption(difficulty_settings[selected_difficulty]["desc"])
     delay_min, delay_max = difficulty_settings[selected_difficulty]["range"]
 
-    st.divider()
-    run_workflow = st.button("▶ Execute Agentic Response", type="primary", use_container_width=True)
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    run_workflow = st.button("▶  Execute Agentic Response", type="primary", use_container_width=True)
 
 # --- NEURAL SWARM TRACKER ---
-st.subheader("🤖 Neural Swarm Activity Tracker")
+st.markdown('<div class="section-label">Neural Swarm Activity</div>', unsafe_allow_html=True)
 
-# 1. Top Tier: The Orchestrator
-col_spacer1, col_orch, col_spacer2 = st.columns([1.5, 2, 1.5])
+col_spacer1, col_orch, col_spacer2 = st.columns([1.8, 1.4, 1.8])
 ui_orchestrator = col_orch.empty()
 ui_orchestrator.markdown(render_agent_card("Master Orchestrator", "🧠", "idle", is_master=True), unsafe_allow_html=True)
 
-st.markdown("<div style='text-align: center; color: #555; font-size: 24px; margin-bottom: -10px;'>⬇</div>", unsafe_allow_html=True)
+st.markdown("<div class='connector'>▾</div>", unsafe_allow_html=True)
 
-# 2. Bottom Tier: The Specialist Agents
 c1, c2, c3, c4, c5 = st.columns(5)
 ui_malware = c1.empty()
 ui_intel = c2.empty()
@@ -214,18 +297,18 @@ st.divider()
 
 # --- PRE-RUN DASHBOARD ---
 if not run_workflow:
-    st.subheader("🛡️ Environment Readiness Overview")
+    st.markdown('<div class="section-label">Environment Readiness</div>', unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric(label="Monitored Endpoints", value="12,402", delta="Online")
-    m2.metric(label="Cloud Assets", value="843", delta="AWS, GCP, Azure")
-    m3.metric(label="Active Policies", value="142", delta="NIST-800-53")
-    m4.metric(label="Swarm Latency", value="12ms", delta="Optimal", delta_color="normal")
+    m1.markdown(metric_card("Monitored Endpoints", "12,402", "Online"), unsafe_allow_html=True)
+    m2.markdown(metric_card("Cloud Assets", "843", "AWS · GCP · Azure"), unsafe_allow_html=True)
+    m3.markdown(metric_card("Active Policies", "142", "NIST-800-53"), unsafe_allow_html=True)
+    m4.markdown(metric_card("Swarm Latency", "12 ms", "Optimal"), unsafe_allow_html=True)
 
-    st.divider()
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-    st.subheader("📥 Pending Injection Payload")
-    st.info(f"Targeting: {selected_scenario} · Difficulty: {selected_difficulty}. The Orchestrator will ingest this data upon deployment.")
+    st.markdown('<div class="section-label">Pending Injection Payload</div>', unsafe_allow_html=True)
+    st.info(f"Targeting **{selected_scenario}** · Difficulty **{selected_difficulty}**. The Orchestrator will ingest this data upon deployment.")
 
     st.json({
         "target_ip": s_data["ip"],
@@ -279,7 +362,7 @@ if run_workflow and backend_connected:
             "name": "Cloud Sec",
             "icon": "☁️",
             "ui": ui_cloud,
-            "run": lambda: orchestrator._run_cloud_security(live_incident["cloud_config"]),
+            "run": lambda: orchestrator._run_cloud(live_incident["cloud_config"]),
         },
         {
             "key": "compliance_analysis",
@@ -319,22 +402,28 @@ if run_workflow and backend_connected:
     total_elapsed = time.time() - op_start
     finish_order = " → ".join(agent["name"] for agent in agent_pool)
 
-    st.success(f"✅ {selected_scenario} Neutralized Autonomously by Orchestrator ({selected_difficulty} difficulty) — completed in {fmt_duration(total_elapsed)}")
+    st.success(f"✅ {selected_scenario} neutralized autonomously by Orchestrator ({selected_difficulty} difficulty) — completed in {fmt_duration(total_elapsed)}")
     st.caption(f"🔀 Agent completion order this run: {finish_order}")
 
     t1, t2, t3 = st.columns(3)
-    t1.metric(label="⏱️ Total Response Time", value=fmt_duration(total_elapsed))
-    t2.metric(label="🐢 Slowest Agent", value=max(agent_durations, key=agent_durations.get).replace("_", " ").title(),
-              delta=fmt_duration(max(agent_durations.values())))
-    t3.metric(label="⚡ Fastest Agent", value=min(agent_durations, key=agent_durations.get).replace("_", " ").title(),
-              delta=fmt_duration(min(agent_durations.values())))
+    t1.markdown(metric_card("⏱ Total Response Time", fmt_duration(total_elapsed)), unsafe_allow_html=True)
+    t2.markdown(metric_card(
+        "🐢 Slowest Agent",
+        max(agent_durations, key=agent_durations.get).replace("_", " ").title(),
+        fmt_duration(max(agent_durations.values()))
+    ), unsafe_allow_html=True)
+    t3.markdown(metric_card(
+        "⚡ Fastest Agent",
+        min(agent_durations, key=agent_durations.get).replace("_", " ").title(),
+        fmt_duration(min(agent_durations.values()))
+    ), unsafe_allow_html=True)
 
     st.divider()
 
     col1, col2, col3 = st.columns([1.2, 1, 1.2])
 
     with col1:
-        st.markdown("### 🛑 Orchestrator Execution Log")
+        st.markdown('<div class="section-label">Orchestrator Execution Log</div>', unsafe_allow_html=True)
         action_decision = final_results.get('recommended_next_step', 'isolate_and_block').replace('_', ' ').upper()
 
         st.markdown(f"""
@@ -344,7 +433,7 @@ if run_workflow and backend_connected:
             [ORCHESTRATOR] Cross-correlating findings...<br>
             [ORCHESTRATOR] Final consensus reached. Bypassing human approval.<br>
             <br>
-            > DEPLOYING PLAYBOOK: {action_decision}<br>
+            &gt; DEPLOYING PLAYBOOK: {action_decision}<br>
             {s_data["actions"]}<br>
             <br>
             [STATUS] <span class="success-text">ENVIRONMENT SECURED.</span>
@@ -352,19 +441,18 @@ if run_workflow and backend_connected:
         """, unsafe_allow_html=True)
 
     with col2:
-        st.markdown("### 🕸️ Visual Threat Topography")
-        st.markdown(f"""
-        <div class="attack-node"><span class="alert-text">{s_data["nodes"][0].split('<br>')[0]}</span><br>{s_data["nodes"][0].split('<br>')[1]}</div>
-        <div class="arrow">⬇</div>
-        <div class="attack-node"><span class="alert-text">{s_data["nodes"][1].split('<br>')[0]}</span><br>{s_data["nodes"][1].split('<br>')[1]}</div>
-        <div class="arrow">⬇</div>
-        <div class="attack-node"><span class="alert-text">{s_data["nodes"][2].split('<br>')[0]}</span><br>{s_data["nodes"][2].split('<br>')[1]}</div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Visual Threat Topography</div>', unsafe_allow_html=True)
+        nodes_html = ""
+        for i, node in enumerate(s_data["nodes"]):
+            title, sub = node.split("<br>")
+            nodes_html += f'<div class="attack-node"><div class="title">{title}</div><div class="sub">{sub}</div></div>'
+            if i < len(s_data["nodes"]) - 1:
+                nodes_html += '<div class="arrow">↓</div>'
+        st.markdown(nodes_html, unsafe_allow_html=True)
 
     with col3:
-        st.markdown("### 🧠 AI Explainability Data")
+        st.markdown('<div class="section-label">AI Explainability Data</div>', unsafe_allow_html=True)
 
-        # Add an expander just for the Orchestrator's final synthesis
         with st.expander("Master Orchestrator Final Decision", expanded=True):
             st.json({
                 "computed_priority": final_results["decision"],
