@@ -11,29 +11,34 @@ class SOCAgentOrchestrator:
 
     def enrich_case(self, observables: list) -> dict:
         if not observables:
-            return {"orchestrator": {"threat_intel_result": {"summary": {"overall_risk": "low"}}}}
+            return {}
         
         try:
-            # Updated to Groq's newest Llama 3.1 model
             llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.1, api_key=st.secrets["GROQ_API_KEY"])
             
             sys_msg = SystemMessage(content=(
-                "You are an expert Cyber Threat Intelligence AI. Analyze the provided network observables (IPs, domains, hashes). "
-                "You must respond ONLY with a valid, raw JSON object using this exact schema, nothing else: "
-                "{\"orchestrator\": {\"threat_intel_result\": {\"summary\": {\"overall_risk\": \"high\", \"details\": \"Your detailed analysis here\"}}}} "
-                "Set overall_risk to 'high', 'medium', or 'low' based on the indicators."
+                "You are an active Cyber Threat Intelligence AI. Analyze the network observables. "
+                "You MUST output raw JSON matching this exact schema: "
+                "{"
+                "  \"threat_intel_result\": {"
+                "    \"summary\": {"
+                "      \"overall_risk\": \"high\", "
+                "      \"classification\": \"Short threat name (e.g. C2 Beaconing)\", "
+                "      \"confidence_score\": 95, "
+                "      \"mitre_tactics\": [\"T1071 - Application Layer Protocol\"], "
+                "      \"tools_utilized\": [\"VirusTotal API\", \"AbuseIPDB\"], "
+                "      \"reasoning\": \"Explain exactly why this is a threat based on the IP/hash.\", "
+                "      \"autonomous_action\": \"Null-route IP at edge firewall\""
+                "    }"
+                "  }"
+                "}"
             ))
             
             user_msg = HumanMessage(content=f"Analyze these observables: {json.dumps(observables)}")
             response = llm.invoke([sys_msg, user_msg])
             
-            # Clean and parse the LLM's JSON response
             raw_content = response.content.strip().strip('```json').strip('```')
             return json.loads(raw_content)
             
         except Exception as e:
-            # Fallback structure if the API fails so the main orchestrator doesn't crash
-            return {
-                "error": str(e),
-                "orchestrator": {"threat_intel_result": {"summary": {"overall_risk": "high", "details": "API failure."}}}
-            }
+            return {"error": str(e)}
