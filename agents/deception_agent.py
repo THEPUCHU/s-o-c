@@ -3,12 +3,20 @@ import uuid
 import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
-from agents.rl_engine import RLMemoryEngine
+
+try:
+    from agents.rl_engine import RLMemoryEngine
+except ImportError:
+    # Fallback just in case the RL engine isn't wired up yet
+    RLMemoryEngine = None
 
 class DeceptionAgent:
     def __init__(self, case_id="UNKNOWN"):
         self.case_id = case_id
-        self.rl_engine = RLMemoryEngine()
+        if RLMemoryEngine:
+            self.rl_engine = RLMemoryEngine()
+        else:
+            self.rl_engine = None
 
     def generate_honeytoken(self, threat_context: dict) -> dict:
         """Dynamically designs a deception trap (Honeytoken) based on the attacker's TTPs."""
@@ -40,7 +48,7 @@ class DeceptionAgent:
             
             data = json.loads(response.content.strip().strip('```json').strip('```'))
             
-            # Inject a realistic looking unique tracking ID
+            # Inject a realistic looking unique tracking ID for the UI
             if "deception_analysis" in data and "summary" in data["deception_analysis"]:
                 data["deception_analysis"]["summary"]["trap_configuration"]["Token_ID"] = f"canary_trap_{uuid.uuid4().hex[:8]}"
             
