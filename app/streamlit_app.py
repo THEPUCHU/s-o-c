@@ -1,6 +1,7 @@
 import streamlit as st
 import sys
 import json
+import pandas as pd
 from pathlib import Path
 
 # --- BULLETPROOF PATH ROUTING ---
@@ -40,6 +41,9 @@ st.markdown("""
         text-align: center; margin-bottom: 10px; box-shadow: 0 0 10px rgba(255, 102, 0, 0.2);
     }
     .arrow { text-align: center; color: #ff6600; font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+    
+    /* Tables */
+    .stDataFrame { border: 1px solid #333333; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -73,27 +77,43 @@ with st.sidebar:
     target_ip = st.text_input("Ingest Suspicious IP:", value="198.51.100.45")
     run_workflow = st.button("▶ Execute Agentic Response", type="primary", use_container_width=True)
 
-# --- DASHBOARD LOGIC ---
+# --- NEURAL SWARM TRACKER (ALWAYS VISIBLE) ---
+st.subheader("🤖 Neural Swarm Activity Tracker")
+
+# We use st.empty() so we can overwrite these cards live during execution
+c1, c2, c3, c4, c5 = st.columns(5)
+ui_malware = c1.empty()
+ui_intel = c2.empty()
+ui_cloud = c3.empty()
+ui_log = c4.empty()
+ui_comp = c5.empty()
+
+# Draw the initial "Idle" state
+ui_malware.markdown(render_agent_card("Malware AI", "🦠", "idle"), unsafe_allow_html=True)
+ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "idle"), unsafe_allow_html=True)
+ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "idle"), unsafe_allow_html=True)
+ui_log.markdown(render_agent_card("Log Analysis", "📜", "idle"), unsafe_allow_html=True)
+ui_comp.markdown(render_agent_card("Compliance", "📋", "idle"), unsafe_allow_html=True)
+
+st.divider()
+
+# --- PRE-RUN DASHBOARD (EMPTY STATE) ---
+if not run_workflow:
+    st.subheader("📥 Global Threat Ingestion Feed")
+    
+    # Generate a rich-looking pending alert queue
+    mock_feed = pd.DataFrame({
+        "Severity": ["🔴 Critical", "🟠 High", "🟡 Medium", "🟡 Medium"],
+        "Source": ["AWS GuardDuty", "CrowdStrike", "Okta IAM", "Palo Alto FW"],
+        "Detected Event": ["Root Account Login & S3 Exposure", "svchost_sus.exe Executed", f"Failed MFA from {target_ip}", "Port Scan Detected"],
+        "Status": ["Awaiting Swarm", "Awaiting Swarm", "Awaiting Swarm", "Queued"]
+    })
+    
+    st.dataframe(mock_feed, use_container_width=True, hide_index=True)
+    st.info(f"System is monitoring the environment. Ready to deploy autonomous swarm against IP: {target_ip}.")
+
+# --- POST-RUN DASHBOARD (ACTIVE EXECUTION) ---
 if run_workflow and backend_connected:
-    st.subheader("🤖 Neural Swarm Activity Tracker")
-    
-    # Create the 5 columns for our agents
-    c1, c2, c3, c4, c5 = st.columns(5)
-    ui_malware = c1.empty()
-    ui_intel = c2.empty()
-    ui_cloud = c3.empty()
-    ui_log = c4.empty()
-    ui_comp = c5.empty()
-
-    # Initial State
-    ui_malware.markdown(render_agent_card("Malware AI", "🦠", "idle"), unsafe_allow_html=True)
-    ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "idle"), unsafe_allow_html=True)
-    ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "idle"), unsafe_allow_html=True)
-    ui_log.markdown(render_agent_card("Log Analysis", "📜", "idle"), unsafe_allow_html=True)
-    ui_comp.markdown(render_agent_card("Compliance", "📋", "idle"), unsafe_allow_html=True)
-
-    st.divider()
-    
     live_incident = {
         "file_path": "C:\\Windows\\Temp\\svchost_sus.exe",
         "observables": [{"value": target_ip, "type": "ip", "severity": "high"}],
@@ -105,7 +125,6 @@ if run_workflow and backend_connected:
     orchestrator = SOCAgentOrchestrator(case_id="SOC-LIVE", analyst="Autonomous Swarm")
     final_results = {"specialists": {}}
 
-    # --- REAL-TIME EXECUTION (Driven by actual API latency, no artificial delay) ---
     with st.spinner("AI Swarm is actively engaged..."):
         
         # 1. Threat Intel
@@ -125,7 +144,7 @@ if run_workflow and backend_connected:
         
         # 4. Cloud Security
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
+        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud(live_incident["cloud_config"])
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
         
         # 5. Compliance
@@ -133,14 +152,12 @@ if run_workflow and backend_connected:
         final_results["specialists"]["compliance_analysis"] = orchestrator._run_compliance(live_incident["controls"])
         ui_comp.markdown(render_agent_card("Compliance", "📋", "done"), unsafe_allow_html=True)
 
-        # Final Orchestrator Decision
         final_results["decision"] = orchestrator._decide_priority(final_results["specialists"])
         final_results["recommended_next_step"] = orchestrator._next_step(final_results["decision"])
 
     st.success("✅ Threat Neutralized Autonomously")
     st.divider()
 
-    # --- DATA VISUALIZATION & LOGS ---
     col1, col2, col3 = st.columns([1.2, 1, 1.2])
     
     with col1:
@@ -181,7 +198,7 @@ if run_workflow and backend_connected:
         """, unsafe_allow_html=True)
 
     with col3:
-        st.markdown("### 🧠 AI Explanability Data")
+        st.markdown("### 🧠 AI Explainability Data")
         for agent_name, agent_data in final_results.get("specialists", {}).items():
             if isinstance(agent_data, dict) and agent_name != "status":
                 with st.expander(f"{agent_name.replace('_', ' ').title()} Output"):
