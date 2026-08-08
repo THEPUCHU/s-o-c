@@ -44,12 +44,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def render_agent_card(agent_name, icon, state):
-    """Generates the HTML for the dynamic agent status cards."""
     if state == "idle":
         border, bg, text, status = "#333333", "#111111", "#555555", "💤 Standby"
     elif state == "running":
         border, bg, text, status = "#ff6600", "#331a00", "#ff8c00", "⚡ Processing..."
-    else: # done
+    else: 
         border, bg, text, status = "#10b981", "#022c22", "#34d399", "✅ Deployed"
 
     return f"""
@@ -60,6 +59,37 @@ def render_agent_card(agent_name, icon, state):
     </div>
     """
 
+# --- THREAT SCENARIOS DICTIONARY ---
+scenarios = {
+    "External Cloud Breach": {
+        "ip": "198.51.100.45",
+        "file": "C:\\Windows\\Temp\\svchost_sus.exe",
+        "cloud_env": "AWS (Root IAM Enabled)",
+        "logs": ["2026-08-08 LoginFailed src=198.51.100.45", "2026-08-08 PowerShell execution"],
+        "config": {"iam": {"root_user_enabled": True}, "storage": {"public_buckets": 1}},
+        "actions": "> Null-routing IP 198.51.100.45... <span class='success-text'>SUCCESS</span><br>> Quarantining svchost_sus.exe... <span class='success-text'>SUCCESS</span><br>> Revoking AWS Root Access... <span class='success-text'>SUCCESS</span>",
+        "nodes": ["External Threat<br>IP: 198.51.100.45", "Exposed Cloud Asset<br>Root IAM Enabled", "Lateral Movement<br>svchost_sus.exe"]
+    },
+    "Ransomware Outbreak": {
+        "ip": "203.0.113.88",
+        "file": "C:\\Users\\Admin\\Downloads\\invoice_pdf.exe",
+        "cloud_env": "Azure (Blob Storage Target)",
+        "logs": ["2026-08-08 Mass file encryption detected", "2026-08-08 Outbound C2 beacon to 203.0.113.88"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "actions": "> Isolating Host from Network... <span class='success-text'>SUCCESS</span><br>> Killing process invoice_pdf.exe... <span class='success-text'>SUCCESS</span><br>> Blocking C2 IP 203.0.113.88 at Firewall... <span class='success-text'>SUCCESS</span>",
+        "nodes": ["Phishing Payload<br>invoice_pdf.exe", "Mass File Encryption<br>Local Drive", "C2 Beaconing<br>IP: 203.0.113.88"]
+    },
+    "Insider Data Exfiltration": {
+        "ip": "10.0.4.55",
+        "file": "/usr/local/bin/db_dump.sh",
+        "cloud_env": "GCP (Unauthorized DB Snapshot)",
+        "logs": ["2026-08-08 Massive DB read volume by User:jdoe", "2026-08-08 Snapshot exported to external bucket"],
+        "config": {"iam": {"root_user_enabled": False}, "storage": {"public_buckets": 0}},
+        "actions": "> Disabling AD Account 'jdoe'... <span class='success-text'>SUCCESS</span><br>> Terminating active DB sessions... <span class='success-text'>SUCCESS</span><br>> Deleting unauthorized GCP snapshot... <span class='success-text'>SUCCESS</span>",
+        "nodes": ["Internal Account<br>User: jdoe", "Unauthorized Script<br>db_dump.sh", "Data Exfiltration<br>External Bucket"]
+    }
+}
+
 # --- HEADER ---
 st.title("🔥 Autonomous SOC AI")
 st.caption("Self-Directing Agentic Swarm: Zero-Latency Threat Neutralization")
@@ -67,16 +97,18 @@ st.divider()
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.subheader("⚙️ System Status")
+    st.subheader("⚙️ Mission Control")
     st.success("🟢 Autonomous Engine: ONLINE")
     st.divider()
-    target_ip = st.text_input("Ingest Suspicious IP:", value="198.51.100.45")
+    
+    selected_scenario = st.selectbox("Select Threat Scenario:", list(scenarios.keys()))
+    s_data = scenarios[selected_scenario]
+    
     run_workflow = st.button("▶ Execute Agentic Response", type="primary", use_container_width=True)
 
-# --- NEURAL SWARM TRACKER (ALWAYS VISIBLE) ---
+# --- NEURAL SWARM TRACKER ---
 st.subheader("🤖 Neural Swarm Activity Tracker")
 
-# We use st.empty() so we can overwrite these cards live during execution
 c1, c2, c3, c4, c5 = st.columns(5)
 ui_malware = c1.empty()
 ui_intel = c2.empty()
@@ -84,7 +116,6 @@ ui_cloud = c3.empty()
 ui_log = c4.empty()
 ui_comp = c5.empty()
 
-# Draw the initial "Idle" state
 ui_malware.markdown(render_agent_card("Malware AI", "🦠", "idle"), unsafe_allow_html=True)
 ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "idle"), unsafe_allow_html=True)
 ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "idle"), unsafe_allow_html=True)
@@ -93,37 +124,35 @@ ui_comp.markdown(render_agent_card("Compliance", "📋", "idle"), unsafe_allow_h
 
 st.divider()
 
-# --- PRE-RUN DASHBOARD (READINESS STATE) ---
+# --- PRE-RUN DASHBOARD ---
 if not run_workflow:
     st.subheader("🛡️ Environment Readiness Overview")
     
-    # Show live-looking environment metrics
     m1, m2, m3, m4 = st.columns(4)
     m1.metric(label="Monitored Endpoints", value="12,402", delta="Online")
-    m2.metric(label="Cloud Assets", value="843", delta="AWS & GCP")
+    m2.metric(label="Cloud Assets", value="843", delta="AWS, GCP, Azure")
     m3.metric(label="Active Policies", value="142", delta="NIST-800-53")
     m4.metric(label="Swarm Latency", value="12ms", delta="Optimal", delta_color="normal")
     
     st.divider()
     
     st.subheader("📥 Pending Injection Payload")
-    st.info("The AI Swarm is awaiting execution. The following telemetry data will be ingested upon deployment.")
+    st.info(f"Targeting: {selected_scenario}. The following telemetry will be ingested upon deployment.")
     
-    # Preview the exact JSON that will be sent to the swarm
     st.json({
-        "target_ip": target_ip,
-        "suspicious_file": "C:\\Windows\\Temp\\svchost_sus.exe",
-        "cloud_environment": "AWS (Root IAM Check Required)",
-        "correlated_logs": f"LoginFailed src={target_ip} followed by PowerShell execution"
+        "target_ip": s_data["ip"],
+        "suspicious_file": s_data["file"],
+        "cloud_environment": s_data["cloud_env"],
+        "correlated_logs": s_data["logs"]
     })
 
-# --- POST-RUN DASHBOARD (ACTIVE EXECUTION) ---
+# --- POST-RUN DASHBOARD ---
 if run_workflow and backend_connected:
     live_incident = {
-        "file_path": "C:\\Windows\\Temp\\svchost_sus.exe",
-        "observables": [{"value": target_ip, "type": "ip", "severity": "high"}],
-        "cloud_config": {"iam": {"root_user_enabled": True}, "storage": {"public_buckets": 1}},
-        "logs": [f"2026-08-08 LoginFailed src={target_ip}", "2026-08-08 PowerShell execution"],
+        "file_path": s_data["file"],
+        "observables": [{"value": s_data["ip"], "type": "ip", "severity": "high"}],
+        "cloud_config": s_data["config"],
+        "logs": s_data["logs"],
         "controls": {"mfa_required": False}
     }
 
@@ -132,27 +161,22 @@ if run_workflow and backend_connected:
 
     with st.spinner("AI Swarm is actively engaged..."):
         
-        # 1. Threat Intel
         ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "running"), unsafe_allow_html=True)
         final_results["specialists"]["threat_intelligence"] = orchestrator._run_threat_intel(live_incident["observables"])
         ui_intel.markdown(render_agent_card("Threat Intel", "🌐", "done"), unsafe_allow_html=True)
         
-        # 2. Log Analysis
         ui_log.markdown(render_agent_card("Log Analysis", "📜", "running"), unsafe_allow_html=True)
         final_results["specialists"]["log_analysis"] = orchestrator._run_log_analysis(live_incident["logs"])
         ui_log.markdown(render_agent_card("Log Analysis", "📜", "done"), unsafe_allow_html=True)
         
-        # 3. Malware
         ui_malware.markdown(render_agent_card("Malware AI", "🦠", "running"), unsafe_allow_html=True)
         final_results["specialists"]["malware_analysis"] = orchestrator._run_malware(live_incident["file_path"])
         ui_malware.markdown(render_agent_card("Malware AI", "🦠", "done"), unsafe_allow_html=True)
         
-        # 4. Cloud Security
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "running"), unsafe_allow_html=True)
-        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud_security(live_incident["cloud_config"])
+        final_results["specialists"]["cloud_security"] = orchestrator._run_cloud(live_incident["cloud_config"])
         ui_cloud.markdown(render_agent_card("Cloud Sec", "☁️", "done"), unsafe_allow_html=True)
         
-        # 5. Compliance
         ui_comp.markdown(render_agent_card("Compliance", "📋", "running"), unsafe_allow_html=True)
         final_results["specialists"]["compliance_analysis"] = orchestrator._run_compliance(live_incident["controls"])
         ui_comp.markdown(render_agent_card("Compliance", "📋", "done"), unsafe_allow_html=True)
@@ -160,7 +184,7 @@ if run_workflow and backend_connected:
         final_results["decision"] = orchestrator._decide_priority(final_results["specialists"])
         final_results["recommended_next_step"] = orchestrator._next_step(final_results["decision"])
 
-    st.success("✅ Threat Neutralized Autonomously")
+    st.success(f"✅ {selected_scenario} Neutralized Autonomously")
     st.divider()
 
     col1, col2, col3 = st.columns([1.2, 1, 1.2])
@@ -174,10 +198,8 @@ if run_workflow and backend_connected:
             [SYSTEM] AI swarm consensus reached.<br>
             [SYSTEM] Bypassing human approval.<br>
             <br>
-            > EXECUTING: {action_decision}<br>
-            > Null-routing {target_ip} at edge... <span class="success-text">SUCCESS</span><br>
-            > Quarantining svchost_sus.exe... <span class="success-text">SUCCESS</span><br>
-            > Revoking exposed AWS IAM roles... <span class="success-text">SUCCESS</span><br>
+            > EXECUTING PLAYBOOK: {action_decision}<br>
+            {s_data["actions"]}<br>
             <br>
             [STATUS] <span class="success-text">ENVIRONMENT SECURED.</span>
         </div>
@@ -186,20 +208,11 @@ if run_workflow and backend_connected:
     with col2:
         st.markdown("### 🕸️ Visual Threat Topography")
         st.markdown(f"""
-        <div class="attack-node">
-            <span class="alert-text">External Threat</span><br>
-            IP: {target_ip}
-        </div>
+        <div class="attack-node"><span class="alert-text">{s_data["nodes"][0].split('<br>')[0]}</span><br>{s_data["nodes"][0].split('<br>')[1]}</div>
         <div class="arrow">⬇</div>
-        <div class="attack-node">
-            <span class="alert-text">Exposed Cloud Asset</span><br>
-            Root IAM Enabled
-        </div>
+        <div class="attack-node"><span class="alert-text">{s_data["nodes"][1].split('<br>')[0]}</span><br>{s_data["nodes"][1].split('<br>')[1]}</div>
         <div class="arrow">⬇</div>
-        <div class="attack-node">
-            <span class="alert-text">Lateral Movement</span><br>
-            svchost_sus.exe Deployed
-        </div>
+        <div class="attack-node"><span class="alert-text">{s_data["nodes"][2].split('<br>')[0]}</span><br>{s_data["nodes"][2].split('<br>')[1]}</div>
         """, unsafe_allow_html=True)
 
     with col3:
